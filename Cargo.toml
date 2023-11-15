@@ -6,3 +6,9 @@ authors = ["jackra1n"]
 description = "A simple PoE Monitor for Raspberry Pi Waveshare PoE HAT (B)"
 repository = "hhttps://github.com/jackra1n/RustBerry-PoE-Monitor"
 readme = "README.md"
+
+[dependencies]
+chrono = "0.4.31"
+embedded-graphics = "0.8.1"
+rppal = "0.15.0"
+ssd1306 = "0.8.4"
