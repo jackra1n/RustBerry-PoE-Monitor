@@ -1,5 +1,5 @@
 use rppal::i2c::I2c;
-use ssd1306::{mode::GraphicsMode, prelude::*, Builder};
+use ssd1306::{mode::GraphicsMode, Builder};
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
@@ -11,20 +11,20 @@ use std::error::Error;
 use std::fs;
 use std::thread;
 use std::time::Duration;
-use sysinfo::{DiskExt, ProcessorExt, System, SystemExt};
+use sysinfo::{System, SystemExt, CpuExt, DiskExt};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut disp = initialize_display()?;
-    let mut sys = System::new_all();
+    let mut sys = SystemExt::new_all();
 
     loop {
         sys.refresh_all();
 
-        let cpu_info = get_cpu_info(&sys);
         let temp = get_cpu_temperature()?;
+        let ip_address = get_ip_address()?;
+        let cpu_info = get_cpu_info(&sys);
         let ram_usage = get_ram_usage(&sys);
         let disk_usage = get_disk_usage(&sys);
-        let ip_address = get_ip_address()?;
 
         update_display(&mut disp, &ip_address, &cpu_info, temp, ram_usage, disk_usage)?;
 
@@ -42,13 +42,10 @@ fn initialize_display() -> Result<GraphicsMode<I2cInterface<I2c>>, Box<dyn Error
 }
 
 fn get_cpu_info(sys: &System) -> String {
-    let cpu_usage_sum: f32 = sys.processors().iter().map(|p| p.cpu_usage()).sum();
-    let cpu_count = sys.processors().len() as f32;
-    if cpu_count > 0 {
-        format!("{:.1}%", cpu_usage_sum / cpu_count)
-    } else {
-        "0.0%".to_string()
-    }
+    sys.refresh_system();
+    let global_processor_info = sys.global_cpu_info();
+    let cpu_usage = global_processor_info.cpu_usage();
+    format!("{:.1}%", cpu_usage)
 }
 
 fn get_cpu_temperature() -> Result<f32, Box<dyn Error>> {
@@ -64,10 +61,18 @@ fn get_ram_usage(sys: &System) -> String {
 }
 
 fn get_disk_usage(sys: &System) -> String {
-    let disk = sys.disks().next().unwrap(); // assuming first disk is the main
-    let total_space = disk.total_space();
-    let available_space = disk.available_space();
-    format!("{:.1}%", ((total_space - available_space) as f64 / total_space as f64) * 100.0)
+    let disks = sys.disks();
+    if let Some(disk) = disks.get(0) { // Using `.get()` to safely access the first disk.
+        let total_space = disk.total_space();
+        let available_space = disk.available_space();
+        if total_space > 0 {
+            format!("{:.1}%", (1.0 - (available_space as f64 / total_space as f64)) * 100.0)
+        } else {
+            "N/A".to_string()
+        }
+    } else {
+        "Disk Not Found".to_string()
+    }
 }
 
 fn get_ip_address() -> Result<String, Box<dyn Error>> {
