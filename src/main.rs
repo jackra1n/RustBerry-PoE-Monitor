@@ -22,11 +22,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let temp = get_cpu_temperature()?;
         let ip_address = get_local_ip();
-        let cpu_info = get_cpu_info(&sys);
+        let cpu_usage = get_cpu_usage(&sys);
         let ram_usage = get_ram_usage(&sys);
         let disk_usage = get_disk_usage(&sys);
 
-        update_display(&mut disp, &ip_address, &cpu_info, temp, ram_usage, disk_usage)?;
+        update_display(&mut disp, &ip_address, &cpu_usage, temp, ram_usage, disk_usage)?;
 
         thread::sleep(Duration::from_secs(1));
     }
@@ -41,36 +41,34 @@ fn initialize_display() -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x3
     Ok(disp)
 }
 
-fn get_cpu_info(sys: &System) -> String {
+fn get_cpu_usage(sys: &System) -> f32 {
     let global_processor_info = sys.global_cpu_info();
-    let cpu_usage = global_processor_info.cpu_usage();
-    format!("{:.1}%", cpu_usage)
+    global_processor_info.cpu_usage()
 }
 
-fn get_cpu_temperature() -> Result<f32, Box<dyn Error>> {
-    let temp_contents = fs::read_to_string("/sys/class/thermal/thermal_zone0/temp")?;
-    let temp_celsius = temp_contents.trim().parse::<f32>()? / 1000.0;
-    Ok(temp_celsius)
+fn get_cpu_temperature() -> f32 {
+    let temp_contents = fs::read_to_string("/sys/class/thermal/thermal_zone0/temp").unwrap();
+    temp_contents.trim().parse::<f32>().unwrap() / 1000.0
 }
 
-fn get_ram_usage(sys: &System) -> String {
+fn get_ram_usage(sys: &System) -> f64 {
     let total_memory = sys.total_memory();
     let used_memory = sys.used_memory();
-    format!("{:.1}%", (used_memory as f64 / total_memory as f64) * 100.0)
+    (used_memory as f64 / total_memory as f64) * 100.0
 }
 
-fn get_disk_usage(sys: &System) -> String {
+fn get_disk_usage(sys: &System) -> f64 {
     let disks = sys.disks();
     if let Some(disk) = disks.get(0) {
         let total_space = disk.total_space();
         let available_space = disk.available_space();
         if total_space > 0 {
-            format!("{:.1}%", (1.0 - (available_space as f64 / total_space as f64)) * 100.0)
+            (1.0 - (available_space as f64 / total_space as f64)) * 100.0
         } else {
-            "N/A".to_string()
+            0.0
         }
     } else {
-        "Disk Not Found".to_string()
+        0.0
     }
 }
 
@@ -84,10 +82,10 @@ fn get_local_ip() -> String {
 fn update_display(
     disp: &mut Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>,
     ip_address: &str,
-    cpu_info: &str,
+    cpu_usage: &f32,
     temp: f32,
-    ram_usage: String,
-    disk_usage: String,
+    ram_usage: f64,
+    disk_usage: f64,
 ) -> Result<(), Box<dyn Error>> {
     let text_style = MonoTextStyleBuilder::new()
         .font(&FONT_6X12)
@@ -101,19 +99,19 @@ fn update_display(
     let ip_text = Text::new(&ip_address, Point::new(0, 0 + offset), text_style);
     ip_text.draw(disp).unwrap();
 
-    let cpu_info_string = format!("{}CPU", cpu_info);
-    let cpu_info_text = Text::new(&cpu_info_string, Point::new(0, 11 + offset), text_style);
-    cpu_info_text.draw(disp).unwrap();
+    let cpu_usage_string = format!("{:.1}%CPU", cpu_usage);
+    let cpu_usage_text = Text::new(&cpu_usage_string, Point::new(0, 11 + offset), text_style);
+    cpu_usage_text.draw(disp).unwrap();
 
-    let temp_string = format!("{}°C", temp);
+    let temp_string = format!("{:.1}°C", temp);
     let temp_text = Text::new(&temp_string, Point::new(64, 11 + offset), text_style);
     temp_text.draw(disp).unwrap();
 
-    let ram_usage_string = format!("{}RAM", ram_usage);
+    let ram_usage_string = format!("{:.1}%RAM", ram_usage);
     let ram_usage_text = Text::new(&ram_usage_string, Point::new(0, 22 + offset), text_style);
     ram_usage_text.draw(disp).unwrap();
 
-    let disk_usage_string = format!("{}DISK", disk_usage);
+    let disk_usage_string = format!("{:.1}%DISK", disk_usage);
     let disk_usage_text = Text::new(&disk_usage_string, Point::new(64, 22 + offset), text_style);
     disk_usage_text.draw(disp).unwrap();
 
