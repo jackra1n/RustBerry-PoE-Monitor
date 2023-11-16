@@ -9,7 +9,7 @@ use embedded_graphics::{
 use std::error::Error;
 use std::fs;
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt, CpuExt, DiskExt};
 use machine_ip;
 
@@ -17,13 +17,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut disp = initialize_display()?;
     let mut sys: System = SystemExt::new_all();
 
-    loop {
-        sys.refresh_all();
+    let mut last_disk_update = Instant::now();
+    let disk_update_interval = Duration::from_secs(60);
 
-        let temp = get_cpu_temperature()?;
+    loop {
+        sys.refresh_cpu();
+        sys.refresh_memory();
+
+        let temp = get_cpu_temperature();
         let ip_address = get_local_ip();
         let cpu_usage = get_cpu_usage(&sys);
         let ram_usage = get_ram_usage(&sys);
+
+        if last_disk_update.elapsed() >= disk_update_interval {
+            sys.refresh_disks();
+            last_disk_update = Instant::now();
+        }
         let disk_usage = get_disk_usage(&sys);
 
         update_display(&mut disp, &ip_address, &cpu_usage, temp, ram_usage, disk_usage)?;
