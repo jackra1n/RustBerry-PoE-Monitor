@@ -8,8 +8,8 @@ repository = "hhttps://github.com/jackra1n/RustBerry-PoE-Monitor"
 readme = "README.md"
 
 [dependencies]
-rppal = "0.15.0"
 sysinfo = "0.29.10"
 ssd1306 = "0.8.4"
 embedded-graphics = "0.8.1"
-get_if_addrs = "0.5.3"
+linux-embedded-hal = "0.3.2"
+machine-ip = "0.2.1"

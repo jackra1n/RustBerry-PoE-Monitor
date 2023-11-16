@@ -1,27 +1,27 @@
-use rppal::i2c::I2c;
-use ssd1306::{mode::GraphicsMode, Builder};
+use linux_embedded_hal::I2cdev;
+use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306, mode::BufferedGraphicsMode};
 use embedded_graphics::{
     mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     text::Text,
 };
-use get_if_addrs::get_if_addrs;
 use std::error::Error;
 use std::fs;
 use std::thread;
 use std::time::Duration;
 use sysinfo::{System, SystemExt, CpuExt, DiskExt};
+use machine_ip;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut disp = initialize_display()?;
-    let mut sys = SystemExt::new_all();
+    let mut sys: System = SystemExt::new_all();
 
     loop {
         sys.refresh_all();
 
         let temp = get_cpu_temperature()?;
-        let ip_address = get_ip_address()?;
+        let ip_address = get_local_ip();
         let cpu_info = get_cpu_info(&sys);
         let ram_usage = get_ram_usage(&sys);
         let disk_usage = get_disk_usage(&sys);
@@ -32,11 +32,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn initialize_display() -> Result<GraphicsMode<I2cInterface<I2c>>, Box<dyn Error>> {
-    let mut i2c = I2c::new()?;
-    i2c.set_slave_address(0x3C)?;
-    let interface = I2cInterface::new(i2c);
-    let mut disp: GraphicsMode<_> = Builder::new().connect(interface).into();
+fn initialize_display() -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>, Box<dyn std::error::Error>> {
+    let i2c = I2cdev::new("/dev/i2c-1")?;
+    let interface = I2CDisplayInterface::new(i2c);
+    let mut disp = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0).into_buffered_graphics_mode();
     disp.init()?;
     Ok(disp)
 }
@@ -62,7 +61,7 @@ fn get_ram_usage(sys: &System) -> String {
 
 fn get_disk_usage(sys: &System) -> String {
     let disks = sys.disks();
-    if let Some(disk) = disks.get(0) { // Using `.get()` to safely access the first disk.
+    if let Some(disk) = disks.get(0) {
         let total_space = disk.total_space();
         let available_space = disk.available_space();
         if total_space > 0 {
@@ -75,12 +74,11 @@ fn get_disk_usage(sys: &System) -> String {
     }
 }
 
-fn get_ip_address() -> Result<String, Box<dyn Error>> {
-    let ip_address = get_if_addrs()?.into_iter()
-        .find(|iface| !iface.is_loopback && iface.addr.is_ipv4())
-        .map(|iface| iface.addr.ip().to_string())
-        .unwrap_or_else(|| "No IP".to_string());
-    Ok(ip_address)
+fn get_local_ip() -> String {
+    match machine_ip::get() {
+        Some(ip) => ip.to_string(),
+        None => "No IP".to_string(),
+    }
 }
 
 fn update_display(
