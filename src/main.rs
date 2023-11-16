@@ -1,7 +1,7 @@
 use linux_embedded_hal::I2cdev;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306, mode::BufferedGraphicsMode};
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X9, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X12, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     text::Text,
@@ -32,10 +32,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn initialize_display() -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>, Box<dyn std::error::Error>> {
+fn initialize_display() -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>, Box<dyn std::error::Error>> {
     let i2c = I2cdev::new("/dev/i2c-1")?;
     let interface = I2CDisplayInterface::new(i2c);
-    let mut disp = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0).into_buffered_graphics_mode();
+    let mut disp = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0).into_buffered_graphics_mode();
 
     disp.init().map_err(|e| format!("Display initialization error: {:?}", e))?;
     Ok(disp)
@@ -82,7 +82,7 @@ fn get_local_ip() -> String {
 }
 
 fn update_display(
-    disp: &mut Ssd1306<I2CInterface<I2cdev>, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>,
+    disp: &mut Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>,
     ip_address: &str,
     cpu_info: &str,
     temp: f32,
@@ -90,19 +90,32 @@ fn update_display(
     disk_usage: String,
 ) -> Result<(), Box<dyn Error>> {
     let text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
+        .font(&FONT_6X12)
         .text_color(BinaryColor::On)
         .build();
 
-    let info = format!(
-        "{}\n{}%CPU {}°C\n{}%RAM\n{}%DISK",
-        ip_address,
-        cpu_info,
-        temp,
-        ram_usage,
-        disk_usage
-    );
-    Text::new(&info, Point::new(0, 0), text_style).draw(disp).unwrap();
+    disp.clear(BinaryColor::Off).unwrap();
+
+    let offset = 8;
+
+    let ip_text = Text::new(&ip_address, Point::new(0, 0 + offset), text_style);
+    ip_text.draw(disp).unwrap();
+
+    let cpu_info_string = format!("{}CPU", cpu_info);
+    let cpu_info_text = Text::new(&cpu_info_string, Point::new(0, 11 + offset), text_style);
+    cpu_info_text.draw(disp).unwrap();
+
+    let temp_string = format!("{}°C", temp);
+    let temp_text = Text::new(&temp_string, Point::new(64, 11 + offset), text_style);
+    temp_text.draw(disp).unwrap();
+
+    let ram_usage_string = format!("{}RAM", ram_usage);
+    let ram_usage_text = Text::new(&ram_usage_string, Point::new(0, 22 + offset), text_style);
+    ram_usage_text.draw(disp).unwrap();
+
+    let disk_usage_string = format!("{}DISK", disk_usage);
+    let disk_usage_text = Text::new(&disk_usage_string, Point::new(64, 22 + offset), text_style);
+    disk_usage_text.draw(disp).unwrap();
 
     disp.flush().unwrap();
     Ok(())
