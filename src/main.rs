@@ -101,29 +101,38 @@ fn update_display(
         .text_color(BinaryColor::On)
         .build();
 
+    let y_offset = 8;
+    let display_width = 128;
+    let char_width = 6;
+
+    let cpu_usage_text = format!("{:.1}% CPU", cpu_usage);
+    let temp_text = format!("{:.1}°C", temp);
+    let ram_text = format!("{:.1}% RAM", ram_usage);
+    let disk_text = format!("{:.1}% DISK", disk_usage);
+
+    let ip_width = ip_address.len() as i32 * char_width;
+    let ip_x_position = (display_width - ip_width) / 2;
+
+    let cpu_usage_x_position = (display_width / 2) - (cpu_usage_text.len() as i32 * char_width);
+    let temp_x_position = display_width - (temp_text.len() as i32 * char_width);
+    let ram_x_position = (display_width / 2) - (ram_text.len() as i32 * char_width);
+    let disk_x_position = display_width - (disk_text.len() as i32 * char_width);
+
+    let ip_text_obj = Text::new(&ip_address, Point::new(ip_x_position, y_offset), text_style);
+    let cpu_text_obj = Text::new(&cpu_usage_text, Point::new(cpu_usage_x_position, 11 + y_offset), text_style);
+    let temp_text_obj = Text::new(&temp_text, Point::new(temp_x_position, 11 + y_offset), text_style);
+    let ram_text_obj = Text::new(&ram_text, Point::new(ram_x_position, 22 + y_offset), text_style);
+    let disk_text_obj = Text::new(&disk_text, Point::new(disk_x_position, 22 + y_offset), text_style);
+
     disp.clear(BinaryColor::Off).unwrap();
-
-    let offset = 8;
-
-    let ip_text = Text::new(&ip_address, Point::new(0, 0 + offset), text_style);
-    ip_text.draw(disp).unwrap();
-
-    let cpu_usage_string = format!("{:.1}%CPU", cpu_usage);
-    let cpu_usage_text = Text::new(&cpu_usage_string, Point::new(0, 11 + offset), text_style);
-    cpu_usage_text.draw(disp).unwrap();
-
-    let temp_string = format!("{:.1}°C", temp);
-    let temp_text = Text::new(&temp_string, Point::new(64, 11 + offset), text_style);
-    temp_text.draw(disp).unwrap();
-
-    let ram_usage_string = format!("{:.1}%RAM", ram_usage);
-    let ram_usage_text = Text::new(&ram_usage_string, Point::new(0, 22 + offset), text_style);
-    ram_usage_text.draw(disp).unwrap();
-
-    let disk_usage_string = format!("{:.1}%DISK", disk_usage);
-    let disk_usage_text = Text::new(&disk_usage_string, Point::new(64, 22 + offset), text_style);
-    disk_usage_text.draw(disp).unwrap();
+    
+    ip_text_obj.draw(disp).unwrap();
+    cpu_text_obj.draw(disp).unwrap();
+    temp_text_obj.draw(disp).unwrap();
+    ram_text_obj.draw(disp).unwrap();
+    disk_text_obj.draw(disp).unwrap();
 
     disp.flush().unwrap();
+
     Ok(())
 }
