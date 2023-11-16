@@ -5,7 +5,7 @@
 
 ## 🚨 THIS PROJECT IS UNDER DEVELOPMENT 🚨
 
-RustBerry-PoE-Monitor is a Rust-based monitoring and control tool for the Raspberry Pi, specifically designed for use with the Waveshare PoE HAT (B). 
+RustBerry-PoE-Monitor is a Rust-based monitoring and control tool for the Raspberry Pi, specifically designed for use with the [Waveshare PoE HAT (B)](https://www.waveshare.com/wiki/PoE_HAT_(B)). 
 
 ![Example image](/docs/IMG_3878.png)
 
@@ -34,3 +34,7 @@ Just run the binary file
 ```bash
 ./rustberry-poe-monitor
 ```
+
+---
+
+This project is inspired by [klamann/raspi-poe-mon](https://github.com/klamann/raspi-poe-mon) rewritten in Rust for learning purposes and better resource usage.

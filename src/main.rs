@@ -1,11 +1,12 @@
 use linux_embedded_hal::I2cdev;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306, mode::BufferedGraphicsMode};
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X12, MonoTextStyleBuilder},
+    mono_font::{ascii, MonoTextStyleBuilder, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
-    text::Text,
+    text::Text
 };
+use profont::PROFONT_12_POINT;
 use std::error::Error;
 use std::fs;
 use std::thread;
@@ -13,7 +14,25 @@ use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt, CpuExt, DiskExt};
 use machine_ip;
 
+
+const PROFONT12: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
+    .font(&PROFONT_12_POINT)
+    .text_color(BinaryColor::On)
+    .build();
+
+const FONT_6X12: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
+    .font(&ascii::FONT_6X12)
+    .text_color(BinaryColor::On)
+    .build();
+
+const FONT_5X8: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
+    .font(&ascii::FONT_5X8)
+    .text_color(BinaryColor::On)
+    .build();
+
 fn main() -> Result<(), Box<dyn Error>> {
+
+
     let mut disp = initialize_display()?;
     let mut sys: System = SystemExt::new_all();
 
@@ -24,18 +43,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         sys.refresh_cpu();
         sys.refresh_memory();
 
-        let temp = get_cpu_temperature();
         let ip_address = get_local_ip();
-        let cpu_usage = get_cpu_usage(&sys);
-        let ram_usage = get_ram_usage(&sys);
+        let temp = format!("{:.1}", get_cpu_temperature());
+        let cpu_usage = format!("{:.1}", get_cpu_usage(&sys));
+        let ram_usage = format!("{:.1}", get_ram_usage(&sys));
 
         if last_disk_update.elapsed() >= disk_update_interval {
             sys.refresh_disks();
             last_disk_update = Instant::now();
         }
-        let disk_usage = get_disk_usage(&sys);
+        let disk_usage = format!("{:.1}", get_disk_usage(&sys));
 
-        update_display(&mut disp, &ip_address, &cpu_usage, temp, ram_usage, disk_usage)?;
+        update_display(&mut disp, &ip_address, cpu_usage, temp, ram_usage, disk_usage)?;
 
         thread::sleep(Duration::from_secs(1));
     }
@@ -91,46 +110,46 @@ fn get_local_ip() -> String {
 fn update_display(
     disp: &mut Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>,
     ip_address: &str,
-    cpu_usage: &f32,
-    temp: f32,
-    ram_usage: f64,
-    disk_usage: f64,
+    cpu_usage: String,
+    temp: String,
+    ram_usage: String,
+    disk_usage: String,
 ) -> Result<(), Box<dyn Error>> {
-    let text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X12)
-        .text_color(BinaryColor::On)
-        .build();
-
     let y_offset = 8;
     let display_width = 128;
-    let char_width = 6;
-
-    let cpu_usage_text = format!("{:.1}% CPU", cpu_usage);
-    let temp_text = format!("{:.1}°C", temp);
-    let ram_text = format!("{:.1}% RAM", ram_usage);
-    let disk_text = format!("{:.1}% DISK", disk_usage);
-
-    let ip_width = ip_address.len() as i32 * char_width;
-    let ip_x_position = (display_width - ip_width) / 2;
-
-    let cpu_usage_x_position = (display_width / 2) - (cpu_usage_text.len() as i32 * char_width);
-    let temp_x_position = display_width - (temp_text.len() as i32 * char_width);
-    let ram_x_position = (display_width / 2) - (ram_text.len() as i32 * char_width);
-    let disk_x_position = display_width - (disk_text.len() as i32 * char_width);
-
-    let ip_text_obj = Text::new(&ip_address, Point::new(ip_x_position, y_offset), text_style);
-    let cpu_text_obj = Text::new(&cpu_usage_text, Point::new(cpu_usage_x_position, 11 + y_offset), text_style);
-    let temp_text_obj = Text::new(&temp_text, Point::new(temp_x_position, 11 + y_offset), text_style);
-    let ram_text_obj = Text::new(&ram_text, Point::new(ram_x_position, 22 + y_offset), text_style);
-    let disk_text_obj = Text::new(&disk_text, Point::new(disk_x_position, 22 + y_offset), text_style);
+    let char_width: i32 = 8;
+    let x_margin = Point::new(2, 0).x_axis();
 
     disp.clear(BinaryColor::Off).unwrap();
+
+    // top center: ip address
+    let ip_width = ip_address.len() as i32 * char_width;
+    let ip_x_position = (display_width - ip_width) / 2;
+    Text::new(&ip_address, Point::new(ip_x_position, y_offset), PROFONT12).draw(disp).unwrap();
+
+    // middle left: cpu usage
+    let cpu_width = cpu_usage.len() as i32 * char_width;
+    let next = Text::new(&cpu_usage, Point::new(34 - cpu_width, 12 + y_offset), PROFONT12).draw(disp).unwrap();
+    let next = Text::new("%", next, FONT_6X12).draw(disp).unwrap();
+    Text::new("CPU", next + x_margin, FONT_5X8).draw(disp).unwrap();
     
-    ip_text_obj.draw(disp).unwrap();
-    cpu_text_obj.draw(disp).unwrap();
-    temp_text_obj.draw(disp).unwrap();
-    ram_text_obj.draw(disp).unwrap();
-    disk_text_obj.draw(disp).unwrap();
+    // bottom left: ram usage
+    let ram_width = ram_usage.len() as i32 * char_width;
+    let next = Text::new(&ram_usage, Point::new(34 - ram_width, 23 + y_offset), PROFONT12).draw(disp).unwrap();
+    let next = Text::new("%", next, FONT_6X12).draw(disp).unwrap();
+    Text::new("RAM", next + x_margin, FONT_5X8).draw(disp).unwrap();
+
+    // middle right: temp
+    let temp_width = temp.len() as i32 * char_width;
+    let next = Text::new(&temp, Point::new(99 - temp_width, 12 + y_offset), PROFONT12).draw(disp).unwrap();
+    let next = Text::new("°", next, PROFONT12).draw(disp).unwrap();
+    Text::new("C", next, PROFONT12).draw(disp).unwrap();
+
+    // bottom right: disk usage
+    let disk_width = disk_usage.len() as i32 * char_width;
+    let next = Text::new(&disk_usage, Point::new(99 - disk_width, 23 + y_offset), PROFONT12).draw(disp).unwrap();
+    let next = Text::new("%", next, FONT_6X12).draw(disp).unwrap();
+    Text::new("DISK", next + x_margin, FONT_5X8).draw(disp).unwrap();
 
     disp.flush().unwrap();
 
