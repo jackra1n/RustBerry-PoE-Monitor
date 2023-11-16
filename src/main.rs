@@ -1,5 +1,6 @@
 use linux_embedded_hal::I2cdev;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306, mode::BufferedGraphicsMode};
+use display_interface::DisplayError;
 use embedded_graphics::{
     mono_font::{ascii, MonoTextStyleBuilder, MonoTextStyle},
     pixelcolor::BinaryColor,
@@ -31,9 +32,9 @@ const FONT_5X8: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
     .build();
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let i2c = I2cdev::new("/dev/i2c-1")?;
 
-
-    let mut disp = initialize_display()?;
+    let mut disp = initialize_display(i2c)?;
     let mut sys: System = SystemExt::new_all();
 
     let mut last_disk_update = Instant::now();
@@ -60,10 +61,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 }
 
-fn initialize_display() -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>, Box<dyn std::error::Error>> {
-    let i2c = I2cdev::new("/dev/i2c-1")?;
+fn initialize_display(i2c: I2cdev) -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>, Box<dyn std::error::Error>> {
     let interface = I2CDisplayInterface::new(i2c);
-    let mut disp = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0).into_buffered_graphics_mode();
+    let mut disp = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
+        .into_buffered_graphics_mode();
 
     disp.init().map_err(|e| format!("Display initialization error: {:?}", e))?;
     Ok(disp)
@@ -114,44 +115,44 @@ fn update_display(
     temp: String,
     ram_usage: String,
     disk_usage: String,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), DisplayError> {
     let y_offset = 8;
     let display_width = 128;
     let char_width: i32 = 8;
     let x_margin = Point::new(2, 0).x_axis();
 
-    disp.clear(BinaryColor::Off).unwrap();
+    disp.clear(BinaryColor::Off)?;
 
     // top center: ip address
     let ip_width = ip_address.len() as i32 * char_width;
     let ip_x_position = (display_width - ip_width) / 2;
-    Text::new(&ip_address, Point::new(ip_x_position, y_offset), PROFONT12).draw(disp).unwrap();
+    Text::new(&ip_address, Point::new(ip_x_position, y_offset), PROFONT12).draw(disp)?;
 
     // middle left: cpu usage
     let cpu_width = cpu_usage.len() as i32 * char_width;
-    let next = Text::new(&cpu_usage, Point::new(34 - cpu_width, 12 + y_offset), PROFONT12).draw(disp).unwrap();
-    let next = Text::new("%", next, FONT_6X12).draw(disp).unwrap();
-    Text::new("CPU", next + x_margin, FONT_5X8).draw(disp).unwrap();
+    let next = Text::new(&cpu_usage, Point::new(34 - cpu_width, 12 + y_offset), PROFONT12).draw(disp)?;
+    let next = Text::new("%", next, FONT_6X12).draw(disp)?;
+    Text::new("CPU", next + x_margin, FONT_5X8).draw(disp)?;
     
     // bottom left: ram usage
     let ram_width = ram_usage.len() as i32 * char_width;
-    let next = Text::new(&ram_usage, Point::new(34 - ram_width, 23 + y_offset), PROFONT12).draw(disp).unwrap();
-    let next = Text::new("%", next, FONT_6X12).draw(disp).unwrap();
-    Text::new("RAM", next + x_margin, FONT_5X8).draw(disp).unwrap();
+    let next = Text::new(&ram_usage, Point::new(34 - ram_width, 23 + y_offset), PROFONT12).draw(disp)?;
+    let next = Text::new("%", next, FONT_6X12).draw(disp)?;
+    Text::new("RAM", next + x_margin, FONT_5X8).draw(disp)?;
 
     // middle right: temp
     let temp_width = temp.len() as i32 * char_width;
-    let next = Text::new(&temp, Point::new(99 - temp_width, 12 + y_offset), PROFONT12).draw(disp).unwrap();
-    let next = Text::new("°", next, PROFONT12).draw(disp).unwrap();
-    Text::new("C", next, PROFONT12).draw(disp).unwrap();
+    let next = Text::new(&temp, Point::new(99 - temp_width, 12 + y_offset), PROFONT12).draw(disp)?;
+    let next = Text::new("°", next, PROFONT12).draw(disp)?;
+    Text::new("C", next, PROFONT12).draw(disp)?;
 
     // bottom right: disk usage
     let disk_width = disk_usage.len() as i32 * char_width;
-    let next = Text::new(&disk_usage, Point::new(99 - disk_width, 23 + y_offset), PROFONT12).draw(disp).unwrap();
-    let next = Text::new("%", next, FONT_6X12).draw(disp).unwrap();
-    Text::new("DISK", next + x_margin, FONT_5X8).draw(disp).unwrap();
+    let next = Text::new(&disk_usage, Point::new(99 - disk_width, 23 + y_offset), PROFONT12).draw(disp)?;
+    let next = Text::new("%", next, FONT_6X12).draw(disp)?;
+    Text::new("DISK", next + x_margin, FONT_5X8).draw(disp)?;
 
-    disp.flush().unwrap();
+    disp.flush()?;
 
     Ok(())
 }

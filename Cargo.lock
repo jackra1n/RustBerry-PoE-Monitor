@@ -338,6 +338,7 @@ dependencies = [
 name = "rustberry-poe-monitor"
 version = "0.1.0"
 dependencies = [
+ "display-interface",
  "embedded-graphics",
  "linux-embedded-hal",
  "machine-ip",
