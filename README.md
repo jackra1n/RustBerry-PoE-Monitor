@@ -6,6 +6,24 @@ RustBerry-PoE-Monitor is a Rust-based monitoring and control tool for the Raspbe
 
 ## Features
 
-- Display real-time system statistics (IP address, memory, CPU usage, etc.) on the PoE HAT's OLED screen.
-- Automatic fan control based on the CPU temperature.
-- Developed in Rust for enhanced memory safety and low resource usage.
+- **Minimal** resource usage
+- Developed in Rust for memory safety
+- Display real-time system statistics (IP address, memory, CPU usage, etc.) on the PoE HAT's OLED screen
+- Automatic fan control based on the CPU temperature [ _Coming Soon_ ]
+
+## Building
+
+### Prerequisites
+For building from my PC to Rasberry Pi I'm using [cross](https://github.com/cross-rs/cross)
+
+### Building for Raspberry Pi
+```bash
+ cross build --target=aarch64-unknown-linux-gnu
+```
+
+## Running
+
+Just run the binary file
+```bash
+./rustberry-poe-monitor
+```
