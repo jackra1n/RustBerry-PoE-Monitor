@@ -36,12 +36,12 @@ fn initialize_display() -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x6
     let i2c = I2cdev::new("/dev/i2c-1")?;
     let interface = I2CDisplayInterface::new(i2c);
     let mut disp = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0).into_buffered_graphics_mode();
-    disp.init()?;
+
+    disp.init().map_err(|e| format!("Display initialization error: {:?}", e))?;
     Ok(disp)
 }
 
 fn get_cpu_info(sys: &System) -> String {
-    sys.refresh_system();
     let global_processor_info = sys.global_cpu_info();
     let cpu_usage = global_processor_info.cpu_usage();
     format!("{:.1}%", cpu_usage)
@@ -82,7 +82,7 @@ fn get_local_ip() -> String {
 }
 
 fn update_display(
-    disp: &mut GraphicsMode<I2cInterface<I2c>>,
+    disp: &mut Ssd1306<I2CInterface<I2cdev>, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>,
     ip_address: &str,
     cpu_info: &str,
     temp: f32,
@@ -94,7 +94,6 @@ fn update_display(
         .text_color(BinaryColor::On)
         .build();
 
-    disp.clear();
     let info = format!(
         "{}\n{}%CPU {}°C\n{}%RAM\n{}%DISK",
         ip_address,
@@ -103,8 +102,8 @@ fn update_display(
         ram_usage,
         disk_usage
     );
-    Text::new(&info, Point::new(0, 0), text_style).draw(disp)?;
+    Text::new(&info, Point::new(0, 0), text_style).draw(disp).unwrap();
 
-    disp.flush()?;
+    disp.flush().unwrap();
     Ok(())
 }
