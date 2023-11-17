@@ -7,7 +7,7 @@
 
 RustBerry-PoE-Monitor is a Rust-based monitoring and control tool for the Raspberry Pi, specifically designed for use with the [Waveshare PoE HAT (B)](https://www.waveshare.com/wiki/PoE_HAT_(B)). 
 
-![Example image](/docs/IMG_3890.png)
+![Example image](/docs/IMG_3890.webp)
 
 This tool provides real-time monitoring of your Raspberry Pi's system statistics, including IP address, memory usage, CPU load, and more, displayed on the PoE HAT's OLED display. Additionally, it offers intelligent fan control to maintain optimal operating temperatures.
 
