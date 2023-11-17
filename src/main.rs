@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         let disk_usage = format!("{:.1}", get_disk_usage(&sys));
 
-        update_display(&mut disp, &ip_address, cpu_usage, temp, ram_usage, disk_usage)?;
+        update_display(&mut disp, &ip_address, cpu_usage, temp, ram_usage, disk_usage).unwrap();
 
         thread::sleep(Duration::from_secs(1));
     }
