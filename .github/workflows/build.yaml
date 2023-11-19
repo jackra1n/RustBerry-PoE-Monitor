@@ -1,0 +1,30 @@
+on: push
+name: Clippy check
+
+# Make sure CI fails on all warnings, including Clippy lints
+env:
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install cross
+        run: cargo install cross
+      - name: Build
+        run: cross build --target aarch64-unknown-linux-gnu --release
+      - name: Archive
+        uses: actions/upload-artifact@v3
+        with:
+          name: rustberry-poe-monitor
+          path: target/aarch64-unknown-linux-gnu/release/rustberry-poe-monitor
+
+  
