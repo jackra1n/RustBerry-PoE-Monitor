@@ -14,30 +14,42 @@ use display::PoeDisplay;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut poe_disp = PoeDisplay::new()?;
-    let mut fan_controller = FanController::new(10.0, 10.0)?;
+    let mut fan_controller = FanController::new(50.0, 60.0)?;
 
     let mut sys: System = SystemExt::new_all();
 
-    let mut last_disk_update = Instant::now();
+    let mut disk_usage = String::new();
     let disk_update_interval = Duration::from_secs(60);
+    let mut last_disk_update = Instant::now() - disk_update_interval;
 
     loop {
         sys.refresh_cpu();
         sys.refresh_memory();
 
         let ip_address = get_local_ip();
-        let temp = format!("{:.1}", get_cpu_temperature());
+        let temp = get_cpu_temperature();
+        let temp_str = format!("{:.1}", temp);
         let cpu_usage = format!("{:.1}", get_cpu_usage(&sys));
         let ram_usage = format!("{:.1}", get_ram_usage(&sys));
+
+
+        if fan_controller.is_running {
+            if temp <= fan_controller.temp_off {
+                fan_controller.fan_off()?;
+            }
+        } else {
+            if temp >= fan_controller.temp_on {
+                fan_controller.fan_on()?;
+            }
+        }
 
         if last_disk_update.elapsed() >= disk_update_interval {
             sys.refresh_disks();
             last_disk_update = Instant::now();
+            disk_usage = format!("{:.1}", get_disk_usage(&sys));
         }
-        let disk_usage = format!("{:.1}", get_disk_usage(&sys));
 
-        poe_disp.update(&ip_address, cpu_usage, temp, ram_usage, disk_usage).unwrap();
-
+        poe_disp.update(&ip_address, cpu_usage, temp_str, ram_usage, &disk_usage).unwrap();
         thread::sleep(Duration::from_secs(1));
     }
 }
