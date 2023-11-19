@@ -1,10 +1,10 @@
-# 🍇 RustBerry-PoE-Monitor 🖥️
+# 🦀🍇 RustBerry-PoE-Monitor
 
 [![Build](https://github.com/jackra1n/RustBerry-PoE-Monitor/actions/workflows/build.yaml/badge.svg)](https://github.com/jackra1n/RustBerry-PoE-Monitor/actions/workflows/build.yaml)
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?logo=rust&logoColor=white)
 ![Raspi](https://img.shields.io/badge/Raspberry%20Pi-A22846?logo=Raspberry%20Pi&logoColor=white)
 
-## 🚨 THIS PROJECT IS UNDER DEVELOPMENT 🚨
+## THIS PROJECT IS UNDER DEVELOPMENT
 
 Some features are not implemented yet and installation is not fully documented.
 If you know what you are doing, you can use the latest release and do it your way or wait untill installation is documented.
@@ -27,7 +27,7 @@ This tool provides real-time monitoring of your Raspberry Pi's system statistics
 ## 🛠️ Building
 
 ### Prerequisites
-For building from my PC to Rasberry Pi I'm using [cross](https://github.com/cross-rs/cross)
+For building for Rasberry Pi I'm using [cross](https://github.com/cross-rs/cross)
 
 ### Building for Raspberry Pi
 ```bash
@@ -40,7 +40,3 @@ Just run the binary file
 ```bash
 ./rustberry-poe-monitor
 ```
-
----
-
-This project is inspired by [klamann/raspi-poe-mon](https://github.com/klamann/raspi-poe-mon) rewritten in Rust for learning purposes and better resource usage.

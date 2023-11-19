@@ -1,5 +1,5 @@
 on: push
-name: Clippy check
+name: Build
 
 # Make sure CI fails on all warnings, including Clippy lints
 env:
