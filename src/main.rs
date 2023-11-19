@@ -3,7 +3,6 @@ use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt, CpuExt, DiskExt};
-use machine_ip;
 
 mod fan_controller;
 use fan_controller::FanController;
@@ -37,10 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             if temp <= fan_controller.temp_off {
                 fan_controller.fan_off()?;
             }
-        } else {
-            if temp >= fan_controller.temp_on {
-                fan_controller.fan_on()?;
-            }
+        } else if temp >= fan_controller.temp_on {
+            fan_controller.fan_on()?;
         }
 
         if last_disk_update.elapsed() >= disk_update_interval {

@@ -24,9 +24,10 @@ const FONT_5X8: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
     .text_color(BinaryColor::On)
     .build();
 
+type Display = Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>;
 
 pub struct PoeDisplay {
-    display: Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>
+    display: Display
 }
 
 impl PoeDisplay {
@@ -56,7 +57,7 @@ impl PoeDisplay {
         // top center: ip address
         let ip_width = ip_address.len() as i32 * char_width;
         let ip_x_position = (display_width - ip_width) / 2;
-        Text::new(&ip_address, Point::new(ip_x_position, y_offset), PROFONT12).draw(disp)?;
+        Text::new(ip_address, Point::new(ip_x_position, y_offset), PROFONT12).draw(disp)?;
     
         // middle left: cpu usage
         let cpu_width = cpu_usage.len() as i32 * char_width;
@@ -82,7 +83,7 @@ impl PoeDisplay {
         // bottom right: disk usage
         let disk_width = disk_usage.len() as i32 * char_width;
         let disk_point = Point::new(99 - disk_width, 23 + y_offset);
-        let next = Text::new(&disk_usage, disk_point, PROFONT12).draw(disp)?;
+        let next = Text::new(disk_usage, disk_point, PROFONT12).draw(disp)?;
         let next = Text::new("%", next, FONT_6X12).draw(disp)?;
         Text::new("DISK", next + x_margin, FONT_5X8).draw(disp)?;
     
@@ -92,7 +93,7 @@ impl PoeDisplay {
     }
 }
 
-fn initialize_display(i2c: I2cdev) -> Result<Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>, Box<dyn std::error::Error>> {
+fn initialize_display(i2c: I2cdev) -> Result<Display, Box<dyn std::error::Error>> {
     let interface = I2CDisplayInterface::new(i2c);
     let mut disp = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
         .into_buffered_graphics_mode();
