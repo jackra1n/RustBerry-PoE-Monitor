@@ -20,7 +20,4 @@ jobs:
       - name: Install cross
         run: cargo install cross
       - name: Build
-        run: cross build --target ${{ matrix.target }}
-        env:
-          # build for all targets
-          matrix: ${{ fromJson(needs.clippy_check.outputs.matrix) }}
+        run: cross build --target aarch64-unknown-linux-gnu --release
