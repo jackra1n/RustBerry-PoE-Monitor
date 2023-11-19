@@ -1,5 +1,6 @@
 # 🍇 RustBerry-PoE-Monitor 🖥️
 
+[![Build](https://github.com/jackra1n/RustBerry-PoE-Monitor/actions/workflows/build.yaml/badge.svg)](https://github.com/jackra1n/RustBerry-PoE-Monitor/actions/workflows/build.yaml)
 ![Rust](https://img.shields.io/badge/rust-%23000000.svg?logo=rust&logoColor=white)
 ![Raspi](https://img.shields.io/badge/Raspberry%20Pi-A22846?logo=Raspberry%20Pi&logoColor=white)
 
