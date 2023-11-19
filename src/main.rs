@@ -14,7 +14,7 @@ use display::PoeDisplay;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut poe_disp = PoeDisplay::new()?;
-    let mut fan_controller = FanController::new()?;
+    let mut fan_controller = FanController::new(10.0, 10.0)?;
 
     let mut sys: System = SystemExt::new_all();
 
