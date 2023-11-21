@@ -10,6 +10,7 @@ use fan_controller::FanController;
 mod display;
 use display::PoeDisplay;
 
+mod display_types;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut poe_disp = PoeDisplay::new()?;
