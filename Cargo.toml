@@ -1,11 +1,14 @@
 [package]
 name = "rustberry-poe-monitor"
-version = "0.3.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["jackra1n"]
 description = "A simple PoE Monitor for Raspberry Pi Waveshare PoE HAT (B)"
 repository = "hhttps://github.com/jackra1n/RustBerry-PoE-Monitor"
 readme = "README.md"
+
+[[bin]]
+name = "rustberry-poe-monitor"
 
 [dependencies]
 sysinfo = "0.29.10"
@@ -15,3 +18,7 @@ linux-embedded-hal = "0.3.2"
 machine-ip = "0.2.1"
 profont = "0.7.0"
 display-interface = "0.4.1"
+clap = { version = "4.4.8", features = ["derive"] }
+anyhow = "1.0.75"
+log = "0.4.20"
+env_logger = "0.10.1"

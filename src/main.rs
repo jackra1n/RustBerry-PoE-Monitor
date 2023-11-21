@@ -3,6 +3,9 @@ use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt, CpuExt, DiskExt};
+use log::info;
+use clap::Parser;
+use env_logger::{Builder, Env};
 
 mod fan_controller;
 use fan_controller::FanController;
@@ -12,15 +15,33 @@ use display::PoeDisplay;
 
 mod display_types;
 
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(long, default_value_t = 60.0)]
+    temp_on: f32,
+
+    #[clap(long, default_value_t = 50.0)]
+    temp_off: f32,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    let env = Env::default().default_filter_or("info");
+    Builder::from_env(env).init();
+
     let mut poe_disp = PoeDisplay::new()?;
-    let mut fan_controller = FanController::new(50.0, 60.0)?;
+    info!("Display initialized");
+
+    let args = Args::parse();
+    let mut fan_controller = FanController::new(args.temp_on, args.temp_off)?;
+    info!("Fan controller initialized. temp-on: {}, temp-off: {}", fan_controller.temp_on, fan_controller.temp_off);
 
     let mut sys: System = SystemExt::new_all();
 
     let mut disk_usage = String::new();
     let disk_update_interval = Duration::from_secs(60);
     let mut last_disk_update = Instant::now() - disk_update_interval;
+    info!("Starting main loop");
 
     loop {
         sys.refresh_cpu();

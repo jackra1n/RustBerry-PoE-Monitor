@@ -1,5 +1,5 @@
 use linux_embedded_hal::{I2cdev, i2cdev::core::I2CDevice};
-
+use anyhow::{anyhow, Result};
 
 const SLAVE_ADDRESS: u16 = 0x20;
 const FAN_ON_COMMAND: u8 = 0xFE;
@@ -8,12 +8,19 @@ const FAN_OFF_COMMAND: u8 = 0x01;
 pub struct FanController {
     i2c: I2cdev,
     pub is_running: bool,
-    pub temp_off: f32,
     pub temp_on: f32,
+    pub temp_off: f32,
 }
 
 impl FanController {
-    pub fn new(temp_off: f32, temp_on: f32) -> Result<Self, std::io::Error> {
+    pub fn new(temp_on: f32, temp_off: f32) -> Result<Self> {
+        if temp_off <= 0.0 || temp_on <= 0.0 {
+            return Err(anyhow!("Temperatures must be greater than 0"));
+        }
+        if temp_on <= temp_off {
+            return Err(anyhow!("temp_on must be greater than temp_off"));
+        }
+
         let i2c = I2cdev::new("/dev/i2c-1")?;
         
         Ok(FanController {
