@@ -13,13 +13,17 @@ This tool provides real-time monitoring of your Raspberry Pi's system statistics
 
 ## 📖 Table of Contents
 
-1. [Features](#🌟-features)
-2. [Installation](#📦-installation)
-    1. [Download](#📥-download)
-        1. [Pre-built binaries](#pre-built-binaries)
-        2. [Cargo](#cargo)
-    2. [Configuration](#📝-configuration)
-3. [Building](#🛠️-building)
+- [🦀🍇 RustBerry-PoE-Monitor](#-rustberry-poe-monitor)
+  - [📖 Table of Contents](#-table-of-contents)
+  - [🌟 Features](#-features)
+  - [📦 Installation](#-installation)
+    - [Easy Installation](#easy-installation)
+    - [Manual Installation](#manual-installation)
+  - [📝 Configuration](#-configuration)
+  - [🛠️ Building](#️-building)
+    - [Prerequisites](#prerequisites)
+    - [Building for Raspberry Pi](#building-for-raspberry-pi)
+  - [🏃‍♂️ Running](#️-running)
 
 
 ## 🌟 Features
@@ -31,66 +35,31 @@ This tool provides real-time monitoring of your Raspberry Pi's system statistics
 
 ## 📦 Installation
 
-### 📥 Download
-First, you will need the binary file. You can either download the pre-built binaries or download it using cargo.
+### Easy Installation
 
-#### Pre-built binaries
-Pre-built binaries are available for download on the [releases page](https://github.com/jackra1n/RustBerry-PoE-Monitor/releases)
-
-To be able to run the binary anywhere on your system, you can move it to `/usr/local/bin`:
+Run the following command to install:
 ```bash
-sudo mv rustberry-poe-monitor /usr/local/bin
+curl -sSL https://raw.githubusercontent.com/jackra1n/RustBerry-PoE-Monitor/main/install.sh | sudo bash
 ```
 
-#### Cargo
+And that's it!
 
-Install with `cargo`:
+### Manual Installation
+
+Check out the [wiki page](https://github.com/jackra1n/RustBerry-PoE-Monitor/wiki/Manual-Installation) to learn how to install manually.
+
+## 📝 Configuration
+
+To change the fan on/off temperature, you can add `temp-on` and `temp-off` arguments to the application.
+If you installed the application using the install script, you can edit the systemd service file to change the arguments.
+
 ```bash
-cargo install rustberry-poe-monitor
+sudo nano /etc/systemd/system/rustberry-poe-monitor.service 
 ```
 
-### 📝 Configuration
-
-You should be able to run the binary file now:
+Change the `ExecStart` line to the following:
 ```bash
-rustberry-poe-monitor
-```
-
-There are 2 CLI arguments available:
-- `--temp-on` - The temperature at which the fan should turn on (default: 60)
-- `--temp-off` - The temperature at which the fan should turn off (default: 50)
-
-Example:
-```bash
-rustberry-poe-monitor --temp-on 65 --temp-off 55
-```
-
-To run the program on startup, you can create a systemd service:
-```bash
-sudo nano /etc/systemd/system/rustberry-poe-monitor.service
-```
-
-Paste the following into the file:
-```bash
-[Unit]
-Description=RustBerry PoE Monitor
-After=network.target
-
-[Service]
-ExecStart=/home/yourUser/.cargo/bin/rustberry-poe-monitor
-User=yourUser
-Restart=always
-RestartSec=30
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Then enable the service:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable rustberry-poe-monitor.service
-sudo systemctl start rustberry-poe-monitor.service
+ExecStart=/usr/local/bin/rustberry-poe-monitor --temp-on 60 --temp-off 50
 ```
 
 
