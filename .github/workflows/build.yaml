@@ -15,16 +15,18 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf]
     steps:
       - uses: actions/checkout@v3
-      - name: Install cross
-        run: cargo install cross
-      - name: Build
-        run: cross build --target aarch64-unknown-linux-gnu --release
-      - name: Archive
+      - name: Install dependencies
+        run: |
+          cargo install cross
+      - name: Build binaries
+        run: cross build --target ${{ matrix.target }} --release
+      - name: Archive binaries
         uses: actions/upload-artifact@v3
         with:
-          name: rustberry-poe-monitor
-          path: target/aarch64-unknown-linux-gnu/release/rustberry-poe-monitor
-
-  
+          name: rustberry-poe-monitor-${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64' || 'armv7l' }}
+          path: target/${{ matrix.target }}/release/rustberry-poe-monitor

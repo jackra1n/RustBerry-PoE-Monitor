@@ -39,7 +39,7 @@ This tool provides real-time monitoring of your Raspberry Pi's system statistics
 
 Run the following command to install:
 ```bash
-curl -sSL https://raw.githubusercontent.com/jackra1n/RustBerry-PoE-Monitor/main/install.sh | sudo bash
+curl -sSL https://rustberry.jackra1n.com/install | sudo bash
 ```
 
 And that's it!
