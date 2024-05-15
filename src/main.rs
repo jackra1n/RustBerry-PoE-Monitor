@@ -92,7 +92,7 @@ fn get_ram_usage(sys: &System) -> f64 {
 
 fn get_disk_usage(sys: &System) -> f64 {
     let disks = sys.disks();
-    if let Some(disk) = disks.get(0) {
+    if let Some(disk) = disks.first() {
         let total_space = disk.total_space();
         let available_space = disk.available_space();
         if total_space > 0 {
