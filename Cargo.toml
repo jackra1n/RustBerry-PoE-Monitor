@@ -1,6 +1,6 @@
 [package]
 name = "rustberry-poe-monitor"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 authors = ["jackra1n"]
 description = "A simple PoE Monitor for Raspberry Pi Waveshare PoE HAT (B)"
