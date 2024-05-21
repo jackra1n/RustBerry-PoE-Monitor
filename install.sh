@@ -57,4 +57,4 @@ sudo systemctl enable rustberry-poe-monitor.service
 sudo systemctl start rustberry-poe-monitor.service
 
 echo "Installation complete"
-
+echo "Please reboot your Raspberry Pi to make sure all changes take effect"
