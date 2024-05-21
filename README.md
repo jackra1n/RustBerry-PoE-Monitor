@@ -79,3 +79,11 @@ Just run the binary file
 ```bash
 ./rustberry-poe-monitor
 ```
+
+
+## Links
+
+- [Waveshare PoE HAT (B)](https://www.waveshare.com/wiki/PoE_HAT_(B))
+- [raspi-poe-mon](https://github.com/klamann/raspi-poe-mon) - python implementation and original idea for the display layout
+- [PCSenior](https://www.1001fonts.com/pc-senior-font.html) - Font used for the display
+- [cross](https://github.com/cross-rs/cross) - Rust tool for building cross-platform binaries
