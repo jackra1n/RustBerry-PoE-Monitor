@@ -3,7 +3,7 @@ use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
 use sysinfo::{System, SystemExt, CpuExt, DiskExt};
-use log::info;
+use log::{info, debug, trace};
 use clap::Parser;
 use env_logger::{Builder, Env};
 
@@ -29,6 +29,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let env = Env::default().default_filter_or("info");
     Builder::from_env(env).init();
 
+    let version = env!("CARGO_PKG_VERSION");
+
+    debug!("Binary info:");
+    debug!("================================");
+    debug!("rustberry-poe-monitor:   {}", version);
+    debug!("Target OS:               {}", std::env::consts::OS);
+    debug!("Target Family:           {}", std::env::consts::FAMILY);
+    debug!("Target Architecture:     {}", std::env::consts::ARCH);
+
     let mut poe_disp = PoeDisplay::new()?;
     info!("Display initialized");
 
@@ -38,10 +47,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut sys: System = SystemExt::new_all();
 
+    debug!("System initialized. System info:");
+    debug!("================================");
+    debug!("System name:                {}", sys.name().unwrap_or_default());
+    debug!("System kernel version:      {}", sys.kernel_version().unwrap_or_default());
+    debug!("System OS version:          {}", sys.os_version().unwrap_or_default());
+
     let mut disk_usage = String::new();
     let disk_update_interval = Duration::from_secs(60);
     let mut last_disk_update = Instant::now() - disk_update_interval;
     info!("Starting main loop");
+
+    fan_controller.fan_off()?;
 
     loop {
         sys.refresh_cpu();
@@ -49,11 +66,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let ip_address = get_local_ip();
         let temp = get_cpu_temperature();
+
         let temp_str = format!("{:.1}", temp);
         let cpu_usage = format!("{:.1}", get_cpu_usage(&sys));
         let ram_usage = format!("{:.1}", get_ram_usage(&sys));
 
-
+        trace!("Checking fan controller. Fan running: {}", fan_controller.is_running);
+        trace!("Temp: {}, Temp-on: {}, Temp-off: {}", temp, fan_controller.temp_on, fan_controller.temp_off);
         if fan_controller.is_running {
             if temp <= fan_controller.temp_off {
                 fan_controller.fan_off()?;
