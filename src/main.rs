@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fs;
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{System, SystemExt, CpuExt, DiskExt};
+use sysinfo::{System, Disks, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
 use log::{info, debug, trace};
 use clap::Parser;
 use env_logger::{Builder, Env};
@@ -45,13 +45,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut fan_controller = FanController::new(args.temp_on, args.temp_off)?;
     info!("Fan controller initialized. temp-on: {}, temp-off: {}", fan_controller.temp_on, fan_controller.temp_off);
 
-    let mut sys: System = SystemExt::new_all();
+    let mut sys: System = System::new_with_specifics(
+        RefreshKind::new()
+            .with_cpu(CpuRefreshKind::new().with_cpu_usage())
+            .with_memory(MemoryRefreshKind::new().with_ram()),
+    );
 
     debug!("System initialized. System info:");
     debug!("================================");
-    debug!("System name:                {}", sys.name().unwrap_or_default());
-    debug!("System kernel version:      {}", sys.kernel_version().unwrap_or_default());
-    debug!("System OS version:          {}", sys.os_version().unwrap_or_default());
+    debug!("System name:             {}", System::name().unwrap_or_default());
+    debug!("System kernel version:   {}", System::kernel_version().unwrap_or_default());
+    debug!("System OS version:       {}", System::os_version().unwrap_or_default());
 
     let mut disk_usage = String::new();
     let disk_update_interval = Duration::from_secs(60);
@@ -61,18 +65,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     fan_controller.fan_off()?;
 
     loop {
-        sys.refresh_cpu();
+        sys.refresh_cpu_usage();
         sys.refresh_memory();
-
+        
         let ip_address = get_local_ip();
         let temp = get_cpu_temperature();
 
         let temp_str = format!("{:.1}", temp);
-        let cpu_usage = format!("{:.1}", get_cpu_usage(&sys));
+        let cpu_usage = format!("{:.1}", sys.global_cpu_info().cpu_usage());
         let ram_usage = format!("{:.1}", get_ram_usage(&sys));
 
         trace!("Checking fan controller. Fan running: {}", fan_controller.is_running);
-        trace!("Temp: {}, Temp-on: {}, Temp-off: {}", temp, fan_controller.temp_on, fan_controller.temp_off);
+        trace!("CPU Temp: {}", temp);
+
         if fan_controller.is_running {
             if temp <= fan_controller.temp_off {
                 fan_controller.fan_off()?;
@@ -82,20 +87,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if last_disk_update.elapsed() >= disk_update_interval {
-            sys.refresh_disks();
             last_disk_update = Instant::now();
-            disk_usage = format!("{:.1}", get_disk_usage(&sys));
+            disk_usage = format!("{:.1}", get_disk_usage());
         }
 
         poe_disp.update(&ip_address, cpu_usage, temp_str, ram_usage, &disk_usage).unwrap();
         thread::sleep(Duration::from_secs(1));
     }
-}
-
-
-fn get_cpu_usage(sys: &System) -> f32 {
-    let global_processor_info = sys.global_cpu_info();
-    global_processor_info.cpu_usage()
 }
 
 fn get_cpu_temperature() -> f32 {
@@ -109,9 +107,10 @@ fn get_ram_usage(sys: &System) -> f64 {
     (used_memory as f64 / total_memory as f64) * 100.0
 }
 
-fn get_disk_usage(sys: &System) -> f64 {
-    let disks = sys.disks();
-    if let Some(disk) = disks.first() {
+fn get_disk_usage() -> f64 {
+    let mut disks = Disks::new_with_refreshed_list();
+    if let Some(disk) = disks.first_mut() {
+        disk.refresh();
         let total_space = disk.total_space();
         let available_space = disk.available_space();
         if total_space > 0 {
