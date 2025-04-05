@@ -50,18 +50,41 @@ Check out the [wiki page](https://github.com/jackra1n/RustBerry-PoE-Monitor/wiki
 
 ## 📝 Configuration
 
-To change the fan on/off temperature, you can add `temp-on` and `temp-off` arguments to the application.
-If you installed the application using the install script, you can edit the systemd service file to change the arguments.
+Configuration is handled via a TOML file located at:
 
-```bash
-sudo nano /etc/systemd/system/rustberry-poe-monitor.service 
+```
+$HOME/.config/rustberry-poe-monitor/config.toml
 ```
 
-Change the `ExecStart` line to the following:
-```bash
-ExecStart=/usr/local/bin/rustberry-poe-monitor --temp-on 60 --temp-off 50
-```
+If this file does not exist when you first run the application, it will be automatically created with default settings. You can then edit this file to customize the behavior.
 
+**Available Options:**
+
+*   **`[display]`**
+    *   `brightness`: Sets the OLED brightness level (0 = dimmest, 4 = brightest).
+    *   `screen_timeout`: Time in seconds before the screen dims to the lowest brightness (set to 0 to disable timeout).
+*   **`[fan]`**
+    *   `temp_on`: CPU temperature (Celsius) at which the fan turns on.
+    *   `temp_off`: CPU temperature (Celsius) at which the fan turns off.
+
+**Example `config.toml`:**
+
+```toml
+# RustBerry-PoE-Monitor Configuration
+
+[display]
+# Brightness level: 0 (dimmest) to 4 (brightest)
+brightness = 2
+
+# Screen timeout settings (in seconds)
+# Time before screen dims to the lowest brightness (set to 0 to disable timeout).
+screen_timeout = 300
+
+[fan]
+# Temperature thresholds for fan control (Celsius)
+temp_on = 60.0   # Temperature at which the fan turns on
+temp_off = 50.0  # Temperature at which the fan turns off
+```
 
 ## 🛠️ Building
 

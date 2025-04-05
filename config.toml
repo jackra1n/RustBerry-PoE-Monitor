@@ -1,0 +1,13 @@
+# RustBerry-PoE-Monitor Configuration
+
+[display]
+# Brightness level: 0 (dimmest) to 4 (brightest)
+brightness = 2
+
+# Screen timeout settings (in seconds)
+screen_timeout = 300       # Time before screen enters power saving mode (dimmest brightest)
+
+[fan]
+# Temperature thresholds for fan control (Celsius)
+temp_on = 60.0   # Temperature at which the fan turns on
+temp_off = 50.0  # Temperature at which the fan turns off

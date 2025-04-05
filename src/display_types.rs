@@ -1,16 +1,18 @@
-use linux_embedded_hal::I2cdev;
-use ssd1306::{prelude::*, Ssd1306, mode::BufferedGraphicsMode};
 use embedded_graphics::{
     image::ImageRaw,
-    mono_font::{ascii, MonoTextStyleBuilder, MonoFont, MonoTextStyle, DecorationDimensions, mapping::StrGlyphMapping},
+    mono_font::{
+        ascii, mapping::StrGlyphMapping, DecorationDimensions, MonoFont, MonoTextStyle,
+        MonoTextStyleBuilder,
+    },
     pixelcolor::BinaryColor,
-    prelude::*
+    prelude::*,
 };
+use linux_embedded_hal::I2cdev;
 use profont::PROFONT_12_POINT;
+use ssd1306::{mode::BufferedGraphicsMode, prelude::*, Ssd1306};
 
-
-pub type Display = Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>;
-
+pub type Display =
+    Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>;
 
 pub const PROFONT12: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
     .font(&PROFONT_12_POINT)
@@ -30,10 +32,7 @@ pub const FONT_5X8: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuilder::new()
 pub const GLYPH_MAPPING: StrGlyphMapping = StrGlyphMapping::new(" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~°", '?' as usize - ' ' as usize);
 
 pub const PCSENIOR8: MonoFont = MonoFont {
-    image: ImageRaw::new(
-        include_bytes!("../data/pcsenior.raw"),
-        128,
-    ),
+    image: ImageRaw::new(include_bytes!("../data/pcsenior.raw"), 128),
     character_size: Size::new(8, 10),
     character_spacing: 0,
     baseline: 7,
