@@ -20,6 +20,24 @@ use display::PoeDisplay;
 
 mod display_types;
 
+struct AppState {
+    last_shift_time: Instant,
+    shift_index: usize,
+    shift_offset: Point,
+    last_periodic_toggle_time: Instant,
+    is_display_periodically_on: bool,
+    screen_dimmed: bool,
+}
+
+struct SystemStats {
+    ip_address: String,
+    cpu_usage: String,
+    cpu_temp: f32,
+    cpu_temp_str: String,
+    ram_usage: String,
+    disk_usage: String,
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let env = Env::default().default_filter_or("info");
     Builder::from_env(env).init();
@@ -65,93 +83,156 @@ fn main() -> Result<(), Box<dyn Error>> {
         System::os_version().unwrap_or_default()
     );
 
-    let mut disk_usage = String::new();
     info!("Starting main loop");
 
     fan_controller.fan_off()?;
 
-    let mut ip_address_str = get_ip_address();
-    let mut iteration = 0;
-
-    let mut shift_offset = Point::new(0, 0);
-    let mut last_shift_time = Instant::now();
-    let shift_pattern = [
-        Point::new(0, 0),
-        Point::new(1, 0),
-    ];
-    let mut shift_index = 0;
     let shift_interval = Duration::from_secs(60);
+    let shift_pattern = [Point::new(0, 0), Point::new(1, 0)];
+
+    let mut app_state = AppState {
+        last_shift_time: Instant::now(),
+        shift_index: 0,
+        shift_offset: Point::new(0, 0),
+        last_periodic_toggle_time: Instant::now(),
+        is_display_periodically_on: true,
+        screen_dimmed: false,
+    };
 
     let start_time = Instant::now();
-    let screen_timeout_duration = config.display_timeout();
-    let mut screen_dimmed = false;
 
     loop {
-        let elapsed_time = start_time.elapsed();
+        let now = Instant::now();
 
-        if screen_timeout_duration.as_secs() > 0
-            && !screen_dimmed
-            && elapsed_time >= screen_timeout_duration
-        {
-            info!("Screen timeout reached. Dimming display.");
-            poe_disp
-                .set_brightness(Brightness::DIMMEST)
-                .map_err(|e| format!("Failed to dim display: {:?}", e))?;
-            screen_dimmed = true;
-        }
+        update_display_state(
+            &config,
+            start_time,
+            now,
+            config.display_timeout(),
+            config.periodic_on_duration(),
+            config.periodic_off_duration(),
+            &mut app_state,
+            &mut poe_disp,
+        )?;
 
-        if last_shift_time.elapsed() >= shift_interval {
-            shift_index = (shift_index + 1) % shift_pattern.len();
-            shift_offset = shift_pattern[shift_index];
-            last_shift_time = Instant::now();
-            debug!("Shifting display pixels to offset: {:?}", shift_offset);
-        }
+        update_pixel_shift(now, shift_interval, &shift_pattern, &mut app_state);
 
-        sys.refresh_cpu_usage();
-        sys.refresh_memory();
+        let stats = gather_stats(&mut sys);
 
-        if iteration % 10 == 0 {
-            ip_address_str = get_ip_address();
-        }
+        handle_fan_control(&mut fan_controller, stats.cpu_temp)?;
 
-        let cpu_temp = get_cpu_temperature();
-        let cpu_temp_str = format!("{:.1}", cpu_temp);
-
-        let cpu_usage = format!("{:.1}", sys.global_cpu_usage());
-        let ram_usage = format!("{:.1}", get_ram_usage(&sys));
-
-        trace!(
-            "Checking fan controller. Fan running: {}",
-            fan_controller.is_running
-        );
-        trace!("CPU Temp: {}", cpu_temp);
-
-        if fan_controller.is_running {
-            if cpu_temp <= fan_controller.temp_off {
-                fan_controller.fan_off()?;
-            }
-        } else if cpu_temp >= fan_controller.temp_on {
-            fan_controller.fan_on()?;
-        }
-
-        if iteration % 60 == 0 {
-            disk_usage = format!("{:.1}", get_disk_usage());
-        }
-
-        poe_disp
-            .update(
-                &ip_address_str,
-                cpu_usage,
-                cpu_temp_str,
-                ram_usage,
-                &disk_usage,
-                shift_offset,
+        if app_state.is_display_periodically_on {
+            poe_disp.update(
+                &stats.ip_address,
+                stats.cpu_usage,
+                stats.cpu_temp_str,
+                stats.ram_usage,
+                &stats.disk_usage,
+                app_state.shift_offset,
             )
             .map_err(|e| format!("Display update error: {:?}", e))?;
+        }
 
-        iteration += 1;
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(config.refresh_interval());
     }
+}
+
+
+fn update_display_state(
+    config: &Config,
+    start_time: Instant,
+    now: Instant,
+    screen_timeout_duration: Duration,
+    periodic_on_duration: Duration,
+    periodic_off_duration: Duration,
+    state: &mut AppState,
+    poe_disp: &mut PoeDisplay,
+) -> Result<(), Box<dyn Error>> {
+    let total_elapsed_time = now.duration_since(start_time);
+    let time_since_last_toggle = now.duration_since(state.last_periodic_toggle_time);
+
+    if screen_timeout_duration.as_secs() > 0
+        && !state.screen_dimmed
+        && total_elapsed_time >= screen_timeout_duration
+    {
+        info!("Screen timeout reached. Dimming display.");
+        poe_disp
+            .set_brightness(Brightness::DIMMEST)
+            .map_err(|e| format!("Failed to dim display: {:?}", e))?;
+        state.screen_dimmed = true;
+    }
+
+    if config.display.enable_periodic_off {
+        if state.is_display_periodically_on && time_since_last_toggle >= periodic_on_duration {
+            debug!("Periodic timer: Turning display OFF.");
+            poe_disp.display_off()
+                .map_err(|e| format!("Failed periodic display OFF: {:?}", e))?;
+            state.is_display_periodically_on = false;
+            state.last_periodic_toggle_time = now;
+        } else if !state.is_display_periodically_on && time_since_last_toggle >= periodic_off_duration {
+            debug!("Periodic timer: Turning display ON.");
+            poe_disp.display_on()
+                .map_err(|e| format!("Failed periodic display ON: {:?}", e))?;
+            state.is_display_periodically_on = true;
+            state.last_periodic_toggle_time = now;
+        }
+    }
+    Ok(())
+}
+
+fn update_pixel_shift(
+    now: Instant,
+    shift_interval: Duration,
+    shift_pattern: &[Point],
+    state: &mut AppState,
+) {
+    if now.duration_since(state.last_shift_time) >= shift_interval {
+        state.shift_index = (state.shift_index + 1) % shift_pattern.len();
+        state.shift_offset = shift_pattern[state.shift_index];
+        state.last_shift_time = now;
+        debug!("Shifting display pixels to offset: {:?}", state.shift_offset);
+    }
+}
+
+fn gather_stats(sys: &mut System) -> SystemStats {
+    sys.refresh_cpu_usage();
+    sys.refresh_memory();
+
+    let ip_address = get_ip_address();
+    let disk_usage = format!("{:.1}", get_disk_usage());
+    let cpu_temp = get_cpu_temperature();
+    let cpu_temp_str = format!("{:.1}", cpu_temp);
+    let cpu_usage = format!("{:.1}", sys.global_cpu_usage());
+    let ram_usage = format!("{:.1}", get_ram_usage(sys));
+
+    SystemStats {
+        ip_address,
+        cpu_usage,
+        cpu_temp,
+        cpu_temp_str,
+        ram_usage,
+        disk_usage,
+    }
+}
+
+fn handle_fan_control(
+    fan_controller: &mut FanController,
+    cpu_temp: f32,
+) -> Result<(), Box<dyn Error>> {
+    trace!(
+        "Checking fan controller. Fan running: {}",
+        fan_controller.is_running
+    );
+    trace!("CPU Temp: {}", cpu_temp);
+
+    if fan_controller.is_running {
+        if cpu_temp <= fan_controller.temp_off {
+            fan_controller.fan_off()?;
+        }
+    } else if cpu_temp >= fan_controller.temp_on {
+        fan_controller.fan_on()?;
+    }
+    Ok(())
 }
 
 fn get_ip_address() -> String {

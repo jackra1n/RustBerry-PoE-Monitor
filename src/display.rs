@@ -7,6 +7,7 @@ use log::{info, warn};
 
 use ssd1306::mode::DisplayConfig;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
+use ssd1306::prelude::Brightness;
 
 pub struct PoeDisplay {
     display: Display,
@@ -21,6 +22,16 @@ impl PoeDisplay {
 
     pub fn set_brightness(&mut self, brightness: Brightness) -> Result<(), DisplayError> {
         self.display.set_brightness(brightness)
+    }
+
+    pub fn display_off(&mut self) -> Result<(), DisplayError> {
+        info!("Turning display OFF.");
+        self.display.set_display_on(false)
+    }
+
+    pub fn display_on(&mut self) -> Result<(), DisplayError> {
+        info!("Turning display ON.");
+        self.display.set_display_on(true)
     }
 
     pub fn update(
@@ -75,6 +86,23 @@ impl PoeDisplay {
     }
 }
 
+fn map_brightness_value(value: u8) -> Brightness {
+    match value {
+        0 => Brightness::DIMMEST,
+        1 => Brightness::DIM,
+        2 => Brightness::NORMAL,
+        3 => Brightness::BRIGHT,
+        4 => Brightness::BRIGHTEST,
+        _ => {
+            warn!(
+                "Invalid brightness value {} encountered, defaulting to DIMMEST",
+                value
+            );
+            Brightness::DIMMEST
+        }
+    }
+}
+
 fn initialize_display(
     i2c: I2cdev,
     display_config: &AppDisplayConfig,
@@ -86,20 +114,7 @@ fn initialize_display(
     disp.init()
         .map_err(|e| format!("Display initialization error: {:?}", e))?;
 
-    let initial_brightness = match display_config.brightness {
-        0 => Brightness::DIMMEST,
-        1 => Brightness::DIM,
-        2 => Brightness::NORMAL,
-        3 => Brightness::BRIGHT,
-        4 => Brightness::BRIGHTEST,
-        _ => {
-            warn!(
-                "Invalid brightness value {} in config, defaulting to DIMMEST",
-                display_config.brightness
-            );
-            Brightness::DIMMEST
-        }
-    };
+    let initial_brightness = map_brightness_value(display_config.brightness);
 
     disp.set_brightness(initial_brightness)
         .map_err(|e| format!("Failed to set initial brightness: {:?}", e))?;

@@ -2,8 +2,15 @@
 
 # Check if script is run as root
 if [ "$EUID" -ne 0 ]
-  then echo "Please run as root"
+  then echo "Please run as root (using sudo)"
   exit
+fi
+
+# Get the original user who invoked sudo
+ORIGINAL_USER=$SUDO_USER
+if [ -z "$ORIGINAL_USER" ]; then
+    echo "Error: Could not determine the original user. Please run using sudo."
+    exit 1
 fi
 
 # Only run on aarch64 or armv7l
@@ -35,13 +42,15 @@ curl -sSL $LATEST_RELEAST_URL -o /usr/local/bin/rustberry-poe-monitor
 chmod +x /usr/local/bin/rustberry-poe-monitor
 
 # Create systemd service
-echo "Creating systemd service"
+echo "Creating systemd service to run as user '$ORIGINAL_USER' (this should be your user)"
 sudo cat <<EOF > /etc/systemd/system/rustberry-poe-monitor.service
 [Unit]
 Description=RustBerry PoE Monitor
 After=network.target
 
 [Service]
+# Run the service as the user who ran the install script
+User=$ORIGINAL_USER
 ExecStart=/usr/local/bin/rustberry-poe-monitor
 Restart=always
 RestartSec=30

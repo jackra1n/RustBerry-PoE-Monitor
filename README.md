@@ -61,11 +61,15 @@ If this file does not exist when you first run the application, it will be autom
 **Available Options:**
 
 *   **`[display]`**
-    *   `brightness`: Sets the OLED brightness level (0 = dimmest, 4 = brightest).
-    *   `screen_timeout`: Time in seconds before the screen dims to the lowest brightness (set to 0 to disable timeout).
+    *   `brightness` (Default: `2`): Sets the OLED brightness level (0 = dimmest, 4 = brightest).
+    *   `screen_timeout` (Default: `300`): Time in seconds before the screen dims to the lowest brightness (set to 0 to disable timeout).
+    *   `enable_periodic_off` (Default: `false`): Set to `true` to enable the periodic on/off cycle.
+    *   `periodic_on_duration` (Default: `10`): If periodic off is enabled, duration (seconds) the display stays ON.
+    *   `periodic_off_duration` (Default: `20`): If periodic off is enabled, duration (seconds) the display stays OFF.
+    *   `refresh_interval_ms` (Default: `1000`): How often (in milliseconds) the display and system stats are updated. Lower values are faster but use more CPU.
 *   **`[fan]`**
-    *   `temp_on`: CPU temperature (Celsius) at which the fan turns on.
-    *   `temp_off`: CPU temperature (Celsius) at which the fan turns off.
+    *   `temp_on` (Default: `60.0`): CPU temperature (Celsius) at which the fan turns on.
+    *   `temp_off` (Default: `50.0`): CPU temperature (Celsius) at which the fan turns off.
 
 **Example `config.toml`:**
 
@@ -74,15 +78,34 @@ If this file does not exist when you first run the application, it will be autom
 
 [display]
 # Brightness level: 0 (dimmest) to 4 (brightest)
+# Default: 2
 brightness = 2
 
 # Screen timeout settings (in seconds)
 # Time before screen dims to the lowest brightness (set to 0 to disable timeout).
+# Default: 300
 screen_timeout = 300
+
+# Periodic Display Off Feature
+# Default: false
+enable_periodic_off = false
+# Duration (in seconds) the display stays ON before turning OFF periodically.
+# Default: 10
+periodic_on_duration = 10
+# Duration (in seconds) the display stays OFF periodically.
+# Default: 20
+periodic_off_duration = 20
+
+# Refresh interval for the display update loop (in milliseconds).
+# Lower values update faster but use slightly more CPU.
+# Default: 1000 (1 second)
+refresh_interval_ms = 1000
 
 [fan]
 # Temperature thresholds for fan control (Celsius)
+# Default: 60.0
 temp_on = 60.0   # Temperature at which the fan turns on
+# Default: 50.0
 temp_off = 50.0  # Temperature at which the fan turns off
 ```
 
