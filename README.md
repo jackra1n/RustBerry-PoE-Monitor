@@ -63,7 +63,7 @@ If this file does not exist when you first run the application, it will be autom
 *   **`[display]`**
     *   `brightness` (Default: `2`): Sets the OLED brightness level (0 = dimmest, 4 = brightest).
     *   `screen_timeout` (Default: `300`): Time in seconds before the screen dims to the lowest brightness (set to 0 to disable timeout).
-    *   `enable_periodic_off` (Default: `false`): Set to `true` to enable the periodic on/off cycle.
+    *   `enable_periodic_off` (Default: `false`): Set to `true` to enable the periodic on/off cycle of the display.
     *   `periodic_on_duration` (Default: `10`): If periodic off is enabled, duration (seconds) the display stays ON.
     *   `periodic_off_duration` (Default: `20`): If periodic off is enabled, duration (seconds) the display stays OFF.
     *   `refresh_interval_ms` (Default: `1000`): How often (in milliseconds) the display and system stats are updated. Lower values are faster but use more CPU.
@@ -74,8 +74,6 @@ If this file does not exist when you first run the application, it will be autom
 **Example `config.toml`:**
 
 ```toml
-# RustBerry-PoE-Monitor Configuration
-
 [display]
 # Brightness level: 0 (dimmest) to 4 (brightest)
 # Default: 2
