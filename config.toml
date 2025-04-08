@@ -1,0 +1,25 @@
+# RustBerry-PoE-Monitor Configuration
+
+[display]
+# Brightness level: 0 (dimmest) to 4 (brightest)
+brightness = 2
+
+# Screen timeout settings (in seconds)
+# Time before screen dims to the lowest brightness (set to 0 to disable timeout).
+screen_timeout = 300
+
+# Periodic Display Off Feature
+enable_periodic_off = false
+# Duration (in seconds) the display stays ON before turning OFF periodically.
+periodic_on_duration = 10
+# Duration (in seconds) the display stays OFF periodically.
+periodic_off_duration = 20
+
+# Refresh interval for the display update loop (in milliseconds).
+# Lower values update faster but use slightly more CPU.
+refresh_interval_ms = 1000
+
+[fan]
+# Temperature thresholds for fan control (Celsius)
+temp_on = 60.0   # Temperature at which the fan turns on
+temp_off = 50.0  # Temperature at which the fan turns off

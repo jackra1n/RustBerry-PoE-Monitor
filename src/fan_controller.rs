@@ -1,8 +1,8 @@
-use linux_embedded_hal::I2cdev;
-use pcf857x::{OutputPin, Pcf8574, SlaveAddr};
 use anyhow::{anyhow, Result};
+use linux_embedded_hal::I2cdev;
 use log::debug;
-
+use pcf857x::OutputPin;
+use pcf857x::{Pcf8574, SlaveAddr};
 
 const I2C_BUS_PATH: &str = "/dev/i2c-1";
 
@@ -22,12 +22,12 @@ impl FanController {
         if temp_on <= temp_off {
             return Err(anyhow!("temp_on must be greater than temp_off"));
         }
-        
+
         let i2c = I2cdev::new(I2C_BUS_PATH)?;
-        debug!("I2C device initialized");
-        let expander = Pcf8574::new(i2c, SlaveAddr::default());
+        let address = SlaveAddr::default();
+        let expander = Pcf8574::new(i2c, address);
         debug!("pcf8574 IO Expander initialized");
-        
+
         Ok(FanController {
             expander,
             is_running: false,
