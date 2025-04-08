@@ -178,14 +178,14 @@ fn handle_periodic_display(
         let time_since_last_toggle = now.duration_since(state.last_periodic_toggle_time);
 
         if state.is_display_periodically_on && time_since_last_toggle >= on_duration {
-            info!("Periodic timer: Turning display OFF.");
+            debug!("Periodic timer: Turning display OFF.");
             poe_disp
                 .display_off()
                 .map_err(|e| format!("Failed periodic display OFF: {:?}", e))?;
             state.is_display_periodically_on = false;
             state.last_periodic_toggle_time = now;
         } else if !state.is_display_periodically_on && time_since_last_toggle >= off_duration {
-            info!("Periodic timer: Turning display ON.");
+            debug!("Periodic timer: Turning display ON.");
             poe_disp
                 .display_on()
                 .map_err(|e| format!("Failed periodic display ON: {:?}", e))?;

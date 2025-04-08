@@ -3,7 +3,7 @@ use crate::display_types::{Display, FONT_5X8, FONT_6X12, PCSENIOR8_STYLE, PROFON
 use display_interface::DisplayError;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, text::Text};
 use linux_embedded_hal::I2cdev;
-use log::{info, warn};
+use log::{debug, info, warn};
 
 use ssd1306::mode::DisplayConfig;
 use ssd1306::prelude::Brightness;
@@ -25,12 +25,12 @@ impl PoeDisplay {
     }
 
     pub fn display_off(&mut self) -> Result<(), DisplayError> {
-        info!("Turning display OFF.");
+        debug!("Turning display OFF.");
         self.display.set_display_on(false)
     }
 
     pub fn display_on(&mut self) -> Result<(), DisplayError> {
-        info!("Turning display ON.");
+        debug!("Turning display ON.");
         self.display.set_display_on(true)
     }
 
