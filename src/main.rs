@@ -78,8 +78,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let shift_pattern = [
         Point::new(0, 0),
         Point::new(1, 0),
-        Point::new(1, 1),
-        Point::new(0, 1),
     ];
     let mut shift_index = 0;
     let shift_interval = Duration::from_secs(60);

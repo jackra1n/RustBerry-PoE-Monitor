@@ -39,7 +39,6 @@ impl PoeDisplay {
         let char_width: i32 = 8;
 
         let x_margin = Point::new(2, 0);
-        let y_margin = Point::new(0, 1);
 
         disp.clear(BinaryColor::Off)?;
 
@@ -51,13 +50,13 @@ impl PoeDisplay {
         let cpu_width = cpu_usage.len() as i32 * char_width;
         let cpu_pos = Point::new(34 - cpu_width, 12 + y_offset) + offset;
         let next = Text::new(&cpu_usage, cpu_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("%", next + y_margin, FONT_6X12).draw(disp)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
         Text::new("CPU", next + x_margin, FONT_5X8).draw(disp)?;
 
         let ram_width = ram_usage.len() as i32 * char_width;
         let ram_pos = Point::new(34 - ram_width, 23 + y_offset) + offset;
         let next = Text::new(&ram_usage, ram_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("%", next + y_margin, FONT_6X12).draw(disp)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
         Text::new("RAM", next + x_margin, FONT_5X8).draw(disp)?;
 
         let temp_width = temp.len() as i32 * char_width;
@@ -69,7 +68,7 @@ impl PoeDisplay {
         let disk_width = disk_usage.len() as i32 * char_width;
         let disk_pos = Point::new(99 - disk_width, 23 + y_offset) + offset;
         let next = Text::new(disk_usage, disk_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("%", next + y_margin, FONT_6X12).draw(disp)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
         Text::new("DISK", next + x_margin, FONT_5X8).draw(disp)?;
 
         disp.flush()
