@@ -6,8 +6,8 @@ use linux_embedded_hal::I2cdev;
 use log::{info, warn};
 
 use ssd1306::mode::DisplayConfig;
-use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 use ssd1306::prelude::Brightness;
+use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 
 pub struct PoeDisplay {
     display: Display,

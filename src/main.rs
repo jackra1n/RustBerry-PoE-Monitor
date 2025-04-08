@@ -87,8 +87,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     fan_controller.fan_off()?;
 
+    let screen_timeout_duration = config.display_timeout();
+    let periodic_on_duration = config.periodic_on_duration();
+    let periodic_off_duration = config.periodic_off_duration();
     let shift_interval = Duration::from_secs(60);
     let shift_pattern = [Point::new(0, 0), Point::new(1, 0)];
+    let refresh_interval = config.refresh_interval();
 
     let mut app_state = AppState {
         last_shift_time: Instant::now(),
@@ -104,13 +108,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     loop {
         let now = Instant::now();
 
-        update_display_state(
-            &config,
+        handle_screen_timeout(
             start_time,
             now,
-            config.display_timeout(),
-            config.periodic_on_duration(),
-            config.periodic_off_duration(),
+            screen_timeout_duration,
+            &mut app_state,
+            &mut poe_disp,
+        )?;
+
+        handle_periodic_display(
+            &config,
+            now,
+            periodic_on_duration,
+            periodic_off_duration,
             &mut app_state,
             &mut poe_disp,
         )?;
@@ -122,56 +132,62 @@ fn main() -> Result<(), Box<dyn Error>> {
         handle_fan_control(&mut fan_controller, stats.cpu_temp)?;
 
         if app_state.is_display_periodically_on {
-            poe_disp.update(
-                &stats.ip_address,
-                stats.cpu_usage,
-                stats.cpu_temp_str,
-                stats.ram_usage,
-                &stats.disk_usage,
-                app_state.shift_offset,
-            )
-            .map_err(|e| format!("Display update error: {:?}", e))?;
+            poe_disp
+                .update(
+                    &stats.ip_address,
+                    stats.cpu_usage,
+                    stats.cpu_temp_str,
+                    stats.ram_usage,
+                    &stats.disk_usage,
+                    app_state.shift_offset,
+                )
+                .map_err(|e| format!("Display update error: {:?}", e))?;
         }
 
-        thread::sleep(config.refresh_interval());
+        thread::sleep(refresh_interval);
     }
 }
 
-
-fn update_display_state(
-    config: &Config,
+fn handle_screen_timeout(
     start_time: Instant,
     now: Instant,
-    screen_timeout_duration: Duration,
-    periodic_on_duration: Duration,
-    periodic_off_duration: Duration,
+    timeout_duration: Duration,
     state: &mut AppState,
     poe_disp: &mut PoeDisplay,
 ) -> Result<(), Box<dyn Error>> {
-    let total_elapsed_time = now.duration_since(start_time);
-    let time_since_last_toggle = now.duration_since(state.last_periodic_toggle_time);
-
-    if screen_timeout_duration.as_secs() > 0
-        && !state.screen_dimmed
-        && total_elapsed_time >= screen_timeout_duration
-    {
+    let elapsed_time = now.duration_since(start_time);
+    if timeout_duration.as_secs() > 0 && !state.screen_dimmed && elapsed_time >= timeout_duration {
         info!("Screen timeout reached. Dimming display.");
         poe_disp
             .set_brightness(Brightness::DIMMEST)
             .map_err(|e| format!("Failed to dim display: {:?}", e))?;
         state.screen_dimmed = true;
     }
+    Ok(())
+}
 
+fn handle_periodic_display(
+    config: &Config,
+    now: Instant,
+    on_duration: Duration,
+    off_duration: Duration,
+    state: &mut AppState,
+    poe_disp: &mut PoeDisplay,
+) -> Result<(), Box<dyn Error>> {
     if config.display.enable_periodic_off {
-        if state.is_display_periodically_on && time_since_last_toggle >= periodic_on_duration {
-            debug!("Periodic timer: Turning display OFF.");
-            poe_disp.display_off()
+        let time_since_last_toggle = now.duration_since(state.last_periodic_toggle_time);
+
+        if state.is_display_periodically_on && time_since_last_toggle >= on_duration {
+            info!("Periodic timer: Turning display OFF.");
+            poe_disp
+                .display_off()
                 .map_err(|e| format!("Failed periodic display OFF: {:?}", e))?;
             state.is_display_periodically_on = false;
             state.last_periodic_toggle_time = now;
-        } else if !state.is_display_periodically_on && time_since_last_toggle >= periodic_off_duration {
-            debug!("Periodic timer: Turning display ON.");
-            poe_disp.display_on()
+        } else if !state.is_display_periodically_on && time_since_last_toggle >= off_duration {
+            info!("Periodic timer: Turning display ON.");
+            poe_disp
+                .display_on()
                 .map_err(|e| format!("Failed periodic display ON: {:?}", e))?;
             state.is_display_periodically_on = true;
             state.last_periodic_toggle_time = now;
@@ -190,7 +206,10 @@ fn update_pixel_shift(
         state.shift_index = (state.shift_index + 1) % shift_pattern.len();
         state.shift_offset = shift_pattern[state.shift_index];
         state.last_shift_time = now;
-        debug!("Shifting display pixels to offset: {:?}", state.shift_offset);
+        debug!(
+            "Shifting display pixels to offset: {:?}",
+            state.shift_offset
+        );
     }
 }
 

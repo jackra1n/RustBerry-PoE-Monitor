@@ -33,12 +33,24 @@ pub struct FanConfig {
     pub temp_off: f32,
 }
 
-fn default_brightness() -> u8 { 2 }
-fn default_screen_timeout() -> u64 { 300 }
-fn default_periodic_off() -> bool { false }
-fn default_periodic_on_duration_seconds() -> u64 { 10 }
-fn default_periodic_off_duration_seconds() -> u64 { 20 }
-fn default_refresh_interval_ms() -> u64 { 1000 }
+fn default_brightness() -> u8 {
+    2
+}
+fn default_screen_timeout() -> u64 {
+    300
+}
+fn default_periodic_off() -> bool {
+    false
+}
+fn default_periodic_on_duration_seconds() -> u64 {
+    10
+}
+fn default_periodic_off_duration_seconds() -> u64 {
+    20
+}
+fn default_refresh_interval_ms() -> u64 {
+    1000
+}
 
 impl Config {
     pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
