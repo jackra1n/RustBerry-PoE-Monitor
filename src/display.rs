@@ -1,6 +1,5 @@
 use crate::config::DisplayConfig as AppDisplayConfig;
 use crate::display_types::{Display, FONT_5X8, FONT_6X12, PCSENIOR8, PCSENIOR8_STYLE, PROFONT12};
-use display_interface::DisplayError;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, text::Text};
 use linux_embedded_hal::I2cdev;
 use log::{debug, info, warn};
@@ -29,29 +28,32 @@ impl PoeDisplay {
         Ok(PoeDisplay { display })
     }
 
-    pub fn set_brightness(&mut self, brightness: Brightness) -> Result<(), DisplayError> {
-        self.display.set_brightness(brightness)
+    pub fn set_brightness(&mut self, brightness: Brightness) -> Result<(), Box<dyn std::error::Error>> {
+        self.display.set_brightness(brightness)?;
+        Ok(())
     }
 
-    pub fn display_off(&mut self) -> Result<(), DisplayError> {
+    pub fn display_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Turning display OFF.");
-        self.display.set_display_on(false)
+        self.display.set_display_on(false)?;
+        Ok(())
     }
 
-    pub fn display_on(&mut self) -> Result<(), DisplayError> {
+    pub fn display_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Turning display ON.");
-        self.display.set_display_on(true)
+        self.display.set_display_on(true)?;
+        Ok(())
     }
 
     pub fn update(
         &mut self,
         ip_address: &str,
-        cpu_usage: String,
-        temp: String,
-        ram_usage: String,
+        cpu_usage: &str,
+        temp: &str,
+        ram_usage: &str,
         disk_usage: &str,
         offset: Point,
-    ) -> Result<(), DisplayError> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let disp = &mut self.display;
 
         disp.clear(BinaryColor::Off)?;

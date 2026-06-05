@@ -135,13 +135,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             poe_disp
                 .update(
                     &stats.ip_address,
-                    stats.cpu_usage,
-                    stats.cpu_temp_str,
-                    stats.ram_usage,
+                    &stats.cpu_usage,
+                    &stats.cpu_temp_str,
+                    &stats.ram_usage,
                     &stats.disk_usage,
                     app_state.shift_offset,
-                )
-                .map_err(|e| format!("Display update error: {:?}", e))?;
+                )?;
         }
 
         thread::sleep(refresh_interval);
@@ -158,9 +157,7 @@ fn handle_screen_timeout(
     let elapsed_time = now.duration_since(start_time);
     if timeout_duration.as_secs() > 0 && !state.screen_dimmed && elapsed_time >= timeout_duration {
         info!("Screen timeout reached. Dimming display.");
-        poe_disp
-            .set_brightness(Brightness::DIMMEST)
-            .map_err(|e| format!("Failed to dim display: {:?}", e))?;
+        poe_disp.set_brightness(Brightness::DIMMEST)?;
         state.screen_dimmed = true;
     }
     Ok(())
@@ -179,16 +176,12 @@ fn handle_periodic_display(
 
         if state.is_display_periodically_on && time_since_last_toggle >= on_duration {
             debug!("Periodic timer: Turning display OFF.");
-            poe_disp
-                .display_off()
-                .map_err(|e| format!("Failed periodic display OFF: {:?}", e))?;
+            poe_disp.display_off()?;
             state.is_display_periodically_on = false;
             state.last_periodic_toggle_time = now;
         } else if !state.is_display_periodically_on && time_since_last_toggle >= off_duration {
             debug!("Periodic timer: Turning display ON.");
-            poe_disp
-                .display_on()
-                .map_err(|e| format!("Failed periodic display ON: {:?}", e))?;
+            poe_disp.display_on()?;
             state.is_display_periodically_on = true;
             state.last_periodic_toggle_time = now;
         }
