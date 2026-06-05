@@ -36,14 +36,18 @@ impl FanController {
 
     pub fn fan_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan on signal [p0: low]");
-        self.expander.set(0xFE)?;
+        self.expander
+            .set(0xFE)
+            .map_err(|e| format!("Fan on error: {:?}", e))?;
         self.is_running = true;
         Ok(())
     }
 
     pub fn fan_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan off signal [p0: high]");
-        self.expander.set(0xFF)?;
+        self.expander
+            .set(0xFF)
+            .map_err(|e| format!("Fan off error: {:?}", e))?;
         self.is_running = false;
         Ok(())
     }
