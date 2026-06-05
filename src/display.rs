@@ -74,7 +74,7 @@ impl PoeDisplay {
 
         let cpu_width = cpu_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let cpu_pos = Point::new(LEFT_COL_RIGHT - cpu_width, STATS_ROW1_Y) + offset;
-        let next = Text::new(&cpu_usage, cpu_pos, PCSENIOR8_STYLE)
+        let next = Text::new(cpu_usage, cpu_pos, PCSENIOR8_STYLE)
             .draw(disp)
             .map_err(|e| format!("Draw CPU error: {:?}", e))?;
         let next = Text::new("%", next, FONT_6X12)
@@ -86,7 +86,7 @@ impl PoeDisplay {
 
         let ram_width = ram_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let ram_pos = Point::new(LEFT_COL_RIGHT - ram_width, STATS_ROW2_Y) + offset;
-        let next = Text::new(&ram_usage, ram_pos, PCSENIOR8_STYLE)
+        let next = Text::new(ram_usage, ram_pos, PCSENIOR8_STYLE)
             .draw(disp)
             .map_err(|e| format!("Draw RAM error: {:?}", e))?;
         let next = Text::new("%", next, FONT_6X12)
@@ -98,7 +98,7 @@ impl PoeDisplay {
 
         let temp_width = temp.len() as i32 * VALUE_CHAR_WIDTH;
         let temp_pos = Point::new(RIGHT_COL_RIGHT - temp_width, STATS_ROW1_Y) + offset;
-        let next = Text::new(&temp, temp_pos, PCSENIOR8_STYLE)
+        let next = Text::new(temp, temp_pos, PCSENIOR8_STYLE)
             .draw(disp)
             .map_err(|e| format!("Draw temp error: {:?}", e))?;
         let next = Text::new("°", next + Point::new(0, 3), PROFONT12)
