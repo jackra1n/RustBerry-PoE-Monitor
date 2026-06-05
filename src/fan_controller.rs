@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use linux_embedded_hal::I2cdev;
 use log::debug;
 use pcf857x::OutputPin;
@@ -14,13 +13,13 @@ pub struct FanController {
 }
 
 impl FanController {
-    pub fn new(temp_on: f32, temp_off: f32) -> Result<Self> {
+    pub fn new(temp_on: f32, temp_off: f32) -> Result<Self, Box<dyn std::error::Error>> {
         debug!("Initializing FanController");
         if temp_off <= 0.0 || temp_on <= 0.0 {
-            return Err(anyhow!("Temperatures must be greater than 0"));
+            return Err("Temperatures must be greater than 0".into());
         }
         if temp_on <= temp_off {
-            return Err(anyhow!("temp_on must be greater than temp_off"));
+            return Err("temp_on must be greater than temp_off".into());
         }
 
         let i2c = I2cdev::new(I2C_BUS_PATH)?;
