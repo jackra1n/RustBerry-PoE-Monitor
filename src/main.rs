@@ -33,7 +33,6 @@ struct SystemStats {
     ip_address: String,
     cpu_usage: String,
     cpu_temp: f32,
-    cpu_temp_str: String,
     ram_usage: String,
     disk_usage: String,
 }
@@ -132,11 +131,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         handle_fan_control(&mut fan_controller, stats.cpu_temp)?;
 
         if app_state.is_display_periodically_on {
+            let temp_str = format!("{:.1}", stats.cpu_temp);
             poe_disp
                 .update(
                     &stats.ip_address,
                     &stats.cpu_usage,
-                    &stats.cpu_temp_str,
+                    &temp_str,
                     &stats.ram_usage,
                     &stats.disk_usage,
                     app_state.shift_offset,
@@ -213,7 +213,6 @@ fn gather_stats(sys: &mut System) -> SystemStats {
     let ip_address = get_ip_address();
     let disk_usage = format!("{:.1}", get_disk_usage());
     let cpu_temp = get_cpu_temperature();
-    let cpu_temp_str = format!("{:.1}", cpu_temp);
     let cpu_usage = format!("{:.1}", sys.global_cpu_usage());
     let ram_usage = format!("{:.1}", get_ram_usage(sys));
 
@@ -221,7 +220,6 @@ fn gather_stats(sys: &mut System) -> SystemStats {
         ip_address,
         cpu_usage,
         cpu_temp,
-        cpu_temp_str,
         ram_usage,
         disk_usage,
     }
