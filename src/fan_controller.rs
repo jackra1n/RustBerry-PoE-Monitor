@@ -1,6 +1,5 @@
 use linux_embedded_hal::I2cdev;
 use log::debug;
-use pcf857x::OutputPin;
 use pcf857x::{Pcf8574, SlaveAddr};
 
 const I2C_BUS_PATH: &str = "/dev/i2c-1";
@@ -37,16 +36,14 @@ impl FanController {
 
     pub fn fan_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan on signal [p0: low]");
-        let mut parts = self.expander.split();
-        parts.p0.set_low()?;
+        self.expander.set(0xFE)?;
         self.is_running = true;
         Ok(())
     }
 
     pub fn fan_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan off signal [p0: high]");
-        let mut parts = self.expander.split();
-        parts.p0.set_high()?;
+        self.expander.set(0xFF)?;
         self.is_running = false;
         Ok(())
     }
