@@ -2,7 +2,7 @@ use crate::config::DisplayConfig as AppDisplayConfig;
 use crate::display_types::{Display, FONT_5X8, FONT_6X12, PCSENIOR8, PCSENIOR8_STYLE, PROFONT12};
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, text::Text};
 use linux_embedded_hal::I2cdev;
-use log::{debug, info, warn};
+use log::{debug, info};
 
 use ssd1306::mode::DisplayConfig;
 use ssd1306::prelude::Brightness;
@@ -98,13 +98,7 @@ fn map_brightness_value(value: u8) -> Brightness {
         2 => Brightness::NORMAL,
         3 => Brightness::BRIGHT,
         4 => Brightness::BRIGHTEST,
-        _ => {
-            warn!(
-                "Invalid brightness value {} encountered, defaulting to DIMMEST",
-                value
-            );
-            Brightness::DIMMEST
-        }
+        _ => unreachable!("Brightness value validated at config load"),
     }
 }
 
