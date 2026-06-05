@@ -39,7 +39,7 @@ impl FanController {
     pub fn fan_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan on signal [p0: low]");
         let mut parts = self.expander.split();
-        parts.p0.set_low().unwrap();
+        parts.p0.set_low()?;
         self.is_running = true;
         Ok(())
     }
@@ -47,7 +47,7 @@ impl FanController {
     pub fn fan_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan off signal [p0: high]");
         let mut parts = self.expander.split();
-        parts.p0.set_high().unwrap();
+        parts.p0.set_high()?;
         self.is_running = false;
         Ok(())
     }
