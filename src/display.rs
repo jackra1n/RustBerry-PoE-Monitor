@@ -1,5 +1,6 @@
 use crate::config::DisplayConfig as AppDisplayConfig;
 use crate::display_types::{Display, FONT_5X8, FONT_6X12, PCSENIOR8, PCSENIOR8_STYLE, PROFONT12};
+use display_interface::DisplayError;
 use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, text::Text};
 use linux_embedded_hal::I2cdev;
 use log::{debug, info, warn};
@@ -29,25 +30,19 @@ impl PoeDisplay {
     }
 
     pub fn set_brightness(&mut self, brightness: Brightness) -> Result<(), Box<dyn std::error::Error>> {
-        self.display
-            .set_brightness(brightness)
-            .map_err(|e| format!("Set brightness error: {:?}", e))?;
+        self.display.set_brightness(brightness).map_err(draw_err)?;
         Ok(())
     }
 
     pub fn display_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Turning display OFF.");
-        self.display
-            .set_display_on(false)
-            .map_err(|e| format!("Display off error: {:?}", e))?;
+        self.display.set_display_on(false).map_err(draw_err)?;
         Ok(())
     }
 
     pub fn display_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Turning display ON.");
-        self.display
-            .set_display_on(true)
-            .map_err(|e| format!("Display on error: {:?}", e))?;
+        self.display.set_display_on(true).map_err(draw_err)?;
         Ok(())
     }
 
@@ -62,66 +57,58 @@ impl PoeDisplay {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let disp = &mut self.display;
 
-        disp.clear(BinaryColor::Off)
-            .map_err(|e| format!("Display clear error: {:?}", e))?;
+        disp.clear(BinaryColor::Off).map_err(draw_err)?;
 
         let ip_width = ip_address.len() as i32 * VALUE_CHAR_WIDTH;
         let ip_x_position = (DISPLAY_WIDTH as i32 - ip_width) / 2;
         let ip_pos = Point::new(ip_x_position, IP_ROW_Y) + offset;
         Text::new(ip_address, ip_pos, PCSENIOR8_STYLE)
             .draw(disp)
-            .map_err(|e| format!("Draw IP error: {:?}", e))?;
+            .map_err(draw_err)?;
 
         let cpu_width = cpu_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let cpu_pos = Point::new(LEFT_COL_RIGHT - cpu_width, STATS_ROW1_Y) + offset;
         let next = Text::new(cpu_usage, cpu_pos, PCSENIOR8_STYLE)
             .draw(disp)
-            .map_err(|e| format!("Draw CPU error: {:?}", e))?;
-        let next = Text::new("%", next, FONT_6X12)
-            .draw(disp)
-            .map_err(|e| format!("Draw CPU % error: {:?}", e))?;
+            .map_err(draw_err)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp).map_err(draw_err)?;
         Text::new("CPU", next + X_MARGIN, FONT_5X8)
             .draw(disp)
-            .map_err(|e| format!("Draw CPU label error: {:?}", e))?;
+            .map_err(draw_err)?;
 
         let ram_width = ram_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let ram_pos = Point::new(LEFT_COL_RIGHT - ram_width, STATS_ROW2_Y) + offset;
         let next = Text::new(ram_usage, ram_pos, PCSENIOR8_STYLE)
             .draw(disp)
-            .map_err(|e| format!("Draw RAM error: {:?}", e))?;
-        let next = Text::new("%", next, FONT_6X12)
-            .draw(disp)
-            .map_err(|e| format!("Draw RAM % error: {:?}", e))?;
+            .map_err(draw_err)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp).map_err(draw_err)?;
         Text::new("RAM", next + X_MARGIN, FONT_5X8)
             .draw(disp)
-            .map_err(|e| format!("Draw RAM label error: {:?}", e))?;
+            .map_err(draw_err)?;
 
         let temp_width = temp.len() as i32 * VALUE_CHAR_WIDTH;
         let temp_pos = Point::new(RIGHT_COL_RIGHT - temp_width, STATS_ROW1_Y) + offset;
         let next = Text::new(temp, temp_pos, PCSENIOR8_STYLE)
             .draw(disp)
-            .map_err(|e| format!("Draw temp error: {:?}", e))?;
+            .map_err(draw_err)?;
         let next = Text::new("°", next + Point::new(0, 3), PROFONT12)
             .draw(disp)
-            .map_err(|e| format!("Draw degree symbol error: {:?}", e))?;
+            .map_err(draw_err)?;
         Text::new("C", next - Point::new(0, 2), PCSENIOR8_STYLE)
             .draw(disp)
-            .map_err(|e| format!("Draw C error: {:?}", e))?;
+            .map_err(draw_err)?;
 
         let disk_width = disk_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let disk_pos = Point::new(RIGHT_COL_RIGHT - disk_width, STATS_ROW2_Y) + offset;
         let next = Text::new(disk_usage, disk_pos, PCSENIOR8_STYLE)
             .draw(disp)
-            .map_err(|e| format!("Draw disk error: {:?}", e))?;
-        let next = Text::new("%", next, FONT_6X12)
-            .draw(disp)
-            .map_err(|e| format!("Draw disk % error: {:?}", e))?;
+            .map_err(draw_err)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp).map_err(draw_err)?;
         Text::new("DISK", next + X_MARGIN, FONT_5X8)
             .draw(disp)
-            .map_err(|e| format!("Draw DISK label error: {:?}", e))?;
+            .map_err(draw_err)?;
 
-        disp.flush()
-            .map_err(|e| format!("Display flush error: {:?}", e))?;
+        disp.flush().map_err(draw_err)?;
         Ok(())
     }
 }
@@ -141,6 +128,10 @@ fn map_brightness_value(value: u8) -> Brightness {
             Brightness::DIMMEST
         }
     }
+}
+
+fn draw_err(e: DisplayError) -> Box<dyn std::error::Error> {
+    format!("Display draw error: {:?}", e).into()
 }
 
 fn initialize_display(
