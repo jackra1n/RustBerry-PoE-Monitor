@@ -36,6 +36,7 @@ impl FanController {
 
     pub fn fan_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan on signal [p0: low]");
+        // 0xFE = p0 low (fan on), p1-p7 high (inactive, no other peripherals on this board)
         self.expander
             .set(0xFE)
             .map_err(|e| format!("Fan on error: {:?}", e))?;
@@ -45,6 +46,7 @@ impl FanController {
 
     pub fn fan_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Sending fan off signal [p0: high]");
+        // 0xFF = all pins high (fan off, p1-p7 inactive)
         self.expander
             .set(0xFF)
             .map_err(|e| format!("Fan off error: {:?}", e))?;
