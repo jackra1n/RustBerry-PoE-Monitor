@@ -68,8 +68,9 @@ impl Config {
             Ok(default_config)
         } else {
             debug!("Loading config file from: {:?}", config_path);
-            let config_str = fs::read_to_string(config_path)?;
+            let config_str = fs::read_to_string(&config_path)?;
             let config: Config = toml::from_str(&config_str)?;
+            config.validate()?;
             Ok(config)
         }
     }
@@ -104,6 +105,17 @@ impl Config {
 
     pub fn refresh_interval(&self) -> Duration {
         Duration::from_millis(self.display.refresh_interval_ms)
+    }
+
+    fn validate(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.display.brightness > 4 {
+            return Err(format!(
+                "Invalid brightness value: {}. Must be between 0 and 4",
+                self.display.brightness
+            )
+            .into());
+        }
+        Ok(())
     }
 }
 
