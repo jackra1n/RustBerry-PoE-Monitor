@@ -58,67 +58,54 @@ impl PoeDisplay {
         disk_usage: &str,
         offset: Point,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        self.render(ip_address, cpu_usage, temp, ram_usage, disk_usage, offset)
+            .map_err(draw_err)?;
+        Ok(())
+    }
+
+    fn render(
+        &mut self,
+        ip_address: &str,
+        cpu_usage: &str,
+        temp: &str,
+        ram_usage: &str,
+        disk_usage: &str,
+        offset: Point,
+    ) -> Result<(), DisplayError> {
         let disp = &mut self.display;
 
-        disp.clear(BinaryColor::Off).map_err(draw_err)?;
+        disp.clear(BinaryColor::Off)?;
 
         let ip_width = ip_address.len() as i32 * VALUE_CHAR_WIDTH;
         let ip_x_position = (DISPLAY_WIDTH as i32 - ip_width) / 2;
         let ip_pos = Point::new(ip_x_position, IP_ROW_Y) + offset;
-        Text::new(ip_address, ip_pos, PCSENIOR8_STYLE)
-            .draw(disp)
-            .map_err(draw_err)?;
+        Text::new(ip_address, ip_pos, PCSENIOR8_STYLE).draw(disp)?;
 
         let cpu_width = cpu_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let cpu_pos = Point::new(LEFT_COL_RIGHT - cpu_width, STATS_ROW1_Y) + offset;
-        let next = Text::new(cpu_usage, cpu_pos, PCSENIOR8_STYLE)
-            .draw(disp)
-            .map_err(draw_err)?;
-        let next = Text::new("%", next, FONT_6X12)
-            .draw(disp)
-            .map_err(draw_err)?;
-        Text::new("CPU", next + X_MARGIN, FONT_5X8)
-            .draw(disp)
-            .map_err(draw_err)?;
+        let next = Text::new(cpu_usage, cpu_pos, PCSENIOR8_STYLE).draw(disp)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
+        Text::new("CPU", next + X_MARGIN, FONT_5X8).draw(disp)?;
 
         let ram_width = ram_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let ram_pos = Point::new(LEFT_COL_RIGHT - ram_width, STATS_ROW2_Y) + offset;
-        let next = Text::new(ram_usage, ram_pos, PCSENIOR8_STYLE)
-            .draw(disp)
-            .map_err(draw_err)?;
-        let next = Text::new("%", next, FONT_6X12)
-            .draw(disp)
-            .map_err(draw_err)?;
-        Text::new("RAM", next + X_MARGIN, FONT_5X8)
-            .draw(disp)
-            .map_err(draw_err)?;
+        let next = Text::new(ram_usage, ram_pos, PCSENIOR8_STYLE).draw(disp)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
+        Text::new("RAM", next + X_MARGIN, FONT_5X8).draw(disp)?;
 
         let temp_width = temp.len() as i32 * VALUE_CHAR_WIDTH;
         let temp_pos = Point::new(RIGHT_COL_RIGHT - temp_width, STATS_ROW1_Y) + offset;
-        let next = Text::new(temp, temp_pos, PCSENIOR8_STYLE)
-            .draw(disp)
-            .map_err(draw_err)?;
-        let next = Text::new("°", next + Point::new(0, 3), PROFONT12)
-            .draw(disp)
-            .map_err(draw_err)?;
-        Text::new("C", next - Point::new(0, 2), PCSENIOR8_STYLE)
-            .draw(disp)
-            .map_err(draw_err)?;
+        let next = Text::new(temp, temp_pos, PCSENIOR8_STYLE).draw(disp)?;
+        let next = Text::new("°", next + Point::new(0, 3), PROFONT12).draw(disp)?;
+        Text::new("C", next - Point::new(0, 2), PCSENIOR8_STYLE).draw(disp)?;
 
         let disk_width = disk_usage.len() as i32 * VALUE_CHAR_WIDTH;
         let disk_pos = Point::new(RIGHT_COL_RIGHT - disk_width, STATS_ROW2_Y) + offset;
-        let next = Text::new(disk_usage, disk_pos, PCSENIOR8_STYLE)
-            .draw(disp)
-            .map_err(draw_err)?;
-        let next = Text::new("%", next, FONT_6X12)
-            .draw(disp)
-            .map_err(draw_err)?;
-        Text::new("DISK", next + X_MARGIN, FONT_5X8)
-            .draw(disp)
-            .map_err(draw_err)?;
+        let next = Text::new(disk_usage, disk_pos, PCSENIOR8_STYLE).draw(disp)?;
+        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
+        Text::new("DISK", next + X_MARGIN, FONT_5X8).draw(disp)?;
 
-        disp.flush().map_err(draw_err)?;
-        Ok(())
+        disp.flush()
     }
 }
 
