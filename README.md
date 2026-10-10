@@ -23,6 +23,7 @@ This tool provides real-time monitoring of your Raspberry Pi's system statistics
   - [🛠️ Building](#️-building)
     - [Prerequisites](#prerequisites)
     - [Building for Raspberry Pi](#building-for-raspberry-pi)
+    - [Display Simulator](#display-simulator)
   - [🏃‍♂️ Running](#️-running)
 
 
@@ -115,6 +116,19 @@ For building for Rasberry Pi I'm using [cross](https://github.com/cross-rs/cross
 ### Building for Raspberry Pi
 ```bash
  cross build --target=aarch64-unknown-linux-gnu --release
+```
+
+### Display Simulator
+To work on the display layout without a Raspberry Pi, you can render it on your computer.
+The window needs SDL2 installed (e.g. `SDL2-devel` on Fedora, `libsdl2-dev` on Debian/Ubuntu).
+```bash
+cargo run -p simulator
+```
+
+Values can be overridden with `key=value` arguments (`ip`, `cpu`, `temp`, `ram`, `disk`, `shift`).
+To save a PNG instead of opening a window (works without SDL2):
+```bash
+cargo run -p simulator --no-default-features -- cpu=100.0 temp=85.3 png=display.png
 ```
 
 ## 🏃‍♂️ Running
