@@ -388,7 +388,6 @@ dependencies = [
 name = "rustberry-poe-monitor"
 version = "1.2.0"
 dependencies = [
- "display-interface",
  "embedded-graphics",
  "env_logger",
  "libc",
