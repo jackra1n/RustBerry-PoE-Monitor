@@ -1,17 +1,17 @@
 use log::{debug, info, warn};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct Config {
     pub display: DisplayConfig,
     pub fan: FanConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct DisplayConfig {
     #[serde(default = "default_brightness")]
     pub brightness: u8,
@@ -27,7 +27,7 @@ pub struct DisplayConfig {
     pub refresh_interval_ms: u64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize)]
 pub struct FanConfig {
     pub temp_on: f32,
     pub temp_off: f32,
@@ -52,6 +52,8 @@ fn default_refresh_interval_ms() -> u64 {
     1000
 }
 
+const DEFAULT_CONFIG: &str = include_str!("../config.toml");
+
 impl Config {
     pub fn load() -> Result<Self, Box<dyn std::error::Error>> {
         let config_path = Self::get_config_path()?;
@@ -60,18 +62,18 @@ impl Config {
             fs::create_dir_all(parent_dir)?;
         }
 
-        if !config_path.exists() {
-            let default_config = Config::default();
-            let toml_string = toml::to_string_pretty(&default_config)?;
-            fs::write(&config_path, toml_string)?;
-            info!("Created default config file at: {:?}", config_path);
-            Ok(default_config)
-        } else {
+        let config_str = if config_path.exists() {
             debug!("Loading config file from: {:?}", config_path);
-            let config_str = fs::read_to_string(config_path)?;
-            let config: Config = toml::from_str(&config_str)?;
-            Ok(config)
-        }
+            fs::read_to_string(&config_path)?
+        } else {
+            fs::write(&config_path, DEFAULT_CONFIG)?;
+            info!("Created default config file at: {:?}", config_path);
+            DEFAULT_CONFIG.to_string()
+        };
+
+        let config: Config = toml::from_str(&config_str)?;
+        config.validate()?;
+        Ok(config)
     }
 
     fn get_config_path() -> Result<PathBuf, Box<dyn std::error::Error>> {
@@ -105,23 +107,21 @@ impl Config {
     pub fn refresh_interval(&self) -> Duration {
         Duration::from_millis(self.display.refresh_interval_ms)
     }
-}
 
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            display: DisplayConfig {
-                brightness: default_brightness(),
-                screen_timeout: default_screen_timeout(),
-                enable_periodic_off: default_periodic_off(),
-                periodic_on_duration: default_periodic_on_duration_seconds(),
-                periodic_off_duration: default_periodic_off_duration_seconds(),
-                refresh_interval_ms: default_refresh_interval_ms(),
-            },
-            fan: FanConfig {
-                temp_on: 60.0,
-                temp_off: 50.0,
-            },
+    fn validate(&self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.display.brightness > 4 {
+            return Err(format!(
+                "Invalid brightness value: {}. Must be between 0 and 4",
+                self.display.brightness
+            )
+            .into());
         }
+        if self.fan.temp_off <= 0.0 || self.fan.temp_on <= 0.0 {
+            return Err("Temperatures must be greater than 0".into());
+        }
+        if self.fan.temp_on <= self.fan.temp_off {
+            return Err("temp_on must be greater than temp_off".into());
+        }
+        Ok(())
     }
 }

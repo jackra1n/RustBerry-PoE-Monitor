@@ -12,15 +12,20 @@ license = "GPL-3.0"
 name = "rustberry-poe-monitor"
 
 [dependencies]
-sysinfo = "0.34.2"
 ssd1306 = "0.10"
 embedded-graphics = "0.8.1"
-linux-embedded-hal = "0.4"
+linux-embedded-hal = { version = "0.4", default-features = false, features = ["i2c"] }
 profont = "0.7.0"
 display-interface = "0.5.0"
-anyhow = "1.0.75"
 log = "0.4.20"
-env_logger = "0.11.3"
+env_logger = { version = "0.11.3", default-features = false }
 pcf857x = "0.5.0"
-toml = "0.8.20"
+toml = { version = "1", default-features = false, features = ["std", "parse", "serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
+libc = "0.2.190"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -4,10 +4,9 @@ use log::{debug, info, trace};
 use ssd1306::prelude::Brightness;
 use std::error::Error;
 use std::fs;
-use std::process::Command;
+use std::net::UdpSocket;
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, RefreshKind, System};
 
 mod fan_controller;
 use fan_controller::FanController;
@@ -29,13 +28,43 @@ struct AppState {
     screen_dimmed: bool,
 }
 
+#[derive(Default)]
+struct CpuSampler {
+    idle: u64,
+    total: u64,
+}
+
+impl CpuSampler {
+    fn usage(&mut self) -> f64 {
+        let stat = fs::read_to_string("/proc/stat").unwrap_or_default();
+        let fields = stat.lines().next().unwrap_or_default().split_whitespace();
+        let (mut idle, mut total) = (0, 0);
+        // user nice system idle iowait irq softirq steal
+        for (i, value) in fields.skip(1).take(8).enumerate() {
+            let value: u64 = value.parse().unwrap_or(0);
+            total += value;
+            if i == 3 || i == 4 {
+                idle += value;
+            }
+        }
+        let idle_delta = idle.saturating_sub(self.idle);
+        let total_delta = total.saturating_sub(self.total);
+        self.idle = idle;
+        self.total = total;
+        if total_delta == 0 {
+            return 0.0;
+        }
+        (1.0 - idle_delta as f64 / total_delta as f64) * 100.0
+    }
+}
+
+#[derive(Default)]
 struct SystemStats {
     ip_address: String,
     cpu_usage: String,
-    cpu_temp: f32,
-    cpu_temp_str: String,
     ram_usage: String,
     disk_usage: String,
+    slow_refreshed_at: Option<Instant>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -62,26 +91,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         fan_controller.temp_on, fan_controller.temp_off
     );
 
-    let mut sys: System = System::new_with_specifics(
-        RefreshKind::nothing()
-            .with_cpu(CpuRefreshKind::nothing().with_cpu_usage())
-            .with_memory(MemoryRefreshKind::nothing().with_ram()),
-    );
-
-    debug!("System initialized. System info:");
-    debug!("================================");
-    debug!(
-        "System name:             {}",
-        System::name().unwrap_or_default()
-    );
-    debug!(
-        "System kernel version:   {}",
-        System::kernel_version().unwrap_or_default()
-    );
-    debug!(
-        "System OS version:       {}",
-        System::os_version().unwrap_or_default()
-    );
+    let mut cpu = CpuSampler::default();
+    let mut stats = SystemStats::default();
 
     info!("Starting main loop");
 
@@ -93,6 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let shift_interval = Duration::from_secs(60);
     let shift_pattern = [Point::new(0, 0), Point::new(1, 0)];
     let refresh_interval = config.refresh_interval();
+    let slow_stats_interval = Duration::from_secs(30);
 
     let mut app_state = AppState {
         last_shift_time: Instant::now(),
@@ -127,21 +139,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         update_pixel_shift(now, shift_interval, &shift_pattern, &mut app_state);
 
-        let stats = gather_stats(&mut sys);
-
-        handle_fan_control(&mut fan_controller, stats.cpu_temp)?;
+        let cpu_temp = get_cpu_temperature();
+        handle_fan_control(&mut fan_controller, cpu_temp)?;
 
         if app_state.is_display_periodically_on {
-            poe_disp
-                .update(
-                    &stats.ip_address,
-                    stats.cpu_usage,
-                    stats.cpu_temp_str,
-                    stats.ram_usage,
-                    &stats.disk_usage,
-                    app_state.shift_offset,
-                )
-                .map_err(|e| format!("Display update error: {:?}", e))?;
+            update_stats(now, slow_stats_interval, &mut cpu, &mut stats);
+            let temp_str = format!("{:.1}", cpu_temp);
+            poe_disp.update(
+                &stats.ip_address,
+                &stats.cpu_usage,
+                &temp_str,
+                &stats.ram_usage,
+                &stats.disk_usage,
+                app_state.shift_offset,
+            )?;
         }
 
         thread::sleep(refresh_interval);
@@ -158,9 +169,7 @@ fn handle_screen_timeout(
     let elapsed_time = now.duration_since(start_time);
     if timeout_duration.as_secs() > 0 && !state.screen_dimmed && elapsed_time >= timeout_duration {
         info!("Screen timeout reached. Dimming display.");
-        poe_disp
-            .set_brightness(Brightness::DIMMEST)
-            .map_err(|e| format!("Failed to dim display: {:?}", e))?;
+        poe_disp.set_brightness(Brightness::DIMMEST)?;
         state.screen_dimmed = true;
     }
     Ok(())
@@ -179,16 +188,12 @@ fn handle_periodic_display(
 
         if state.is_display_periodically_on && time_since_last_toggle >= on_duration {
             debug!("Periodic timer: Turning display OFF.");
-            poe_disp
-                .display_off()
-                .map_err(|e| format!("Failed periodic display OFF: {:?}", e))?;
+            poe_disp.display_off()?;
             state.is_display_periodically_on = false;
             state.last_periodic_toggle_time = now;
         } else if !state.is_display_periodically_on && time_since_last_toggle >= off_duration {
             debug!("Periodic timer: Turning display ON.");
-            poe_disp
-                .display_on()
-                .map_err(|e| format!("Failed periodic display ON: {:?}", e))?;
+            poe_disp.display_on()?;
             state.is_display_periodically_on = true;
             state.last_periodic_toggle_time = now;
         }
@@ -213,24 +218,22 @@ fn update_pixel_shift(
     }
 }
 
-fn gather_stats(sys: &mut System) -> SystemStats {
-    sys.refresh_cpu_usage();
-    sys.refresh_memory();
+fn update_stats(
+    now: Instant,
+    slow_interval: Duration,
+    cpu: &mut CpuSampler,
+    stats: &mut SystemStats,
+) {
+    stats.cpu_usage = format!("{:.1}", cpu.usage());
+    stats.ram_usage = format!("{:.1}", get_ram_usage());
 
-    let ip_address = get_ip_address();
-    let disk_usage = format!("{:.1}", get_disk_usage());
-    let cpu_temp = get_cpu_temperature();
-    let cpu_temp_str = format!("{:.1}", cpu_temp);
-    let cpu_usage = format!("{:.1}", sys.global_cpu_usage());
-    let ram_usage = format!("{:.1}", get_ram_usage(sys));
-
-    SystemStats {
-        ip_address,
-        cpu_usage,
-        cpu_temp,
-        cpu_temp_str,
-        ram_usage,
-        disk_usage,
+    if stats
+        .slow_refreshed_at
+        .is_none_or(|refreshed_at| now.duration_since(refreshed_at) >= slow_interval)
+    {
+        stats.ip_address = get_ip_address();
+        stats.disk_usage = format!("{:.1}", get_disk_usage());
+        stats.slow_refreshed_at = Some(now);
     }
 }
 
@@ -255,22 +258,11 @@ fn handle_fan_control(
 }
 
 fn get_ip_address() -> String {
-    Command::new("hostname")
-        .arg("-I")
-        .output()
-        .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .and_then(|s| s.split_whitespace().next().map(str::to_string))
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| "0.0.0.0".to_string())
-        .trim()
-        .to_string()
+    // connecting a UDP socket sends no packets, it only picks the outgoing interface
+    UdpSocket::bind("0.0.0.0:0")
+        .and_then(|socket| socket.connect("1.1.1.1:80").and(socket.local_addr()))
+        .map(|addr| addr.ip().to_string())
+        .unwrap_or_else(|_| "0.0.0.0".to_string())
 }
 
 fn get_cpu_temperature() -> f32 {
@@ -283,24 +275,27 @@ fn get_cpu_temperature() -> f32 {
     }
 }
 
-fn get_ram_usage(sys: &System) -> f64 {
-    let total_memory = sys.total_memory();
-    let used_memory = sys.used_memory();
-    (used_memory as f64 / total_memory as f64) * 100.0
+fn get_ram_usage() -> f64 {
+    let meminfo = fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let field = |name: &str| -> f64 {
+        meminfo
+            .lines()
+            .find_map(|line| line.strip_prefix(name))
+            .and_then(|rest| rest.split_whitespace().next())
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0.0)
+    };
+    let total = field("MemTotal:");
+    if total == 0.0 {
+        return 0.0;
+    }
+    (1.0 - field("MemAvailable:") / total) * 100.0
 }
 
 fn get_disk_usage() -> f64 {
-    let mut disks = Disks::new_with_refreshed_list();
-    if let Some(disk) = disks.first_mut() {
-        disk.refresh();
-        let total_space = disk.total_space();
-        let available_space = disk.available_space();
-        if total_space > 0 {
-            (1.0 - (available_space as f64 / total_space as f64)) * 100.0
-        } else {
-            0.0
-        }
-    } else {
-        0.0
+    let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+    if unsafe { libc::statvfs(c"/".as_ptr(), &mut stat) } != 0 || stat.f_blocks == 0 {
+        return 0.0;
     }
+    (1.0 - stat.f_bavail as f64 / stat.f_blocks as f64) * 100.0
 }
