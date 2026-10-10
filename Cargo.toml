@@ -15,7 +15,7 @@ name = "rustberry-poe-monitor"
 sysinfo = "0.34.2"
 ssd1306 = "0.10"
 embedded-graphics = "0.8.1"
-linux-embedded-hal = "0.4"
+linux-embedded-hal = { version = "0.4", default-features = false, features = ["i2c"] }
 profont = "0.7.0"
 display-interface = "0.5.0"
 log = "0.4.20"
