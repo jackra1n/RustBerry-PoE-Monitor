@@ -61,7 +61,6 @@ impl CpuSampler {
 struct SystemStats {
     ip_address: String,
     cpu_usage: String,
-    cpu_temp: f32,
     ram_usage: String,
     disk_usage: String,
 }
@@ -136,12 +135,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         update_pixel_shift(now, shift_interval, &shift_pattern, &mut app_state);
 
-        let stats = gather_stats(&mut cpu);
-
-        handle_fan_control(&mut fan_controller, stats.cpu_temp)?;
+        let cpu_temp = get_cpu_temperature();
+        handle_fan_control(&mut fan_controller, cpu_temp)?;
 
         if app_state.is_display_periodically_on {
-            let temp_str = format!("{:.1}", stats.cpu_temp);
+            let stats = gather_stats(&mut cpu);
+            let temp_str = format!("{:.1}", cpu_temp);
             poe_disp.update(
                 &stats.ip_address,
                 &stats.cpu_usage,
@@ -219,7 +218,6 @@ fn gather_stats(cpu: &mut CpuSampler) -> SystemStats {
     SystemStats {
         ip_address: get_ip_address(),
         cpu_usage: format!("{:.1}", cpu.usage()),
-        cpu_temp: get_cpu_temperature(),
         ram_usage: format!("{:.1}", get_ram_usage()),
         disk_usage: format!("{:.1}", get_disk_usage()),
     }
