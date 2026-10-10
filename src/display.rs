@@ -33,19 +33,25 @@ impl PoeDisplay {
         &mut self,
         brightness: Brightness,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.display.set_brightness(brightness).map_err(draw_err)?;
+        self.display
+            .set_brightness(brightness)
+            .map_err(|e| format!("Failed to set brightness: {:?}", e))?;
         Ok(())
     }
 
     pub fn display_off(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Turning display OFF.");
-        self.display.set_display_on(false).map_err(draw_err)?;
+        self.display
+            .set_display_on(false)
+            .map_err(|e| format!("Failed to turn display off: {:?}", e))?;
         Ok(())
     }
 
     pub fn display_on(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         debug!("Turning display ON.");
-        self.display.set_display_on(true).map_err(draw_err)?;
+        self.display
+            .set_display_on(true)
+            .map_err(|e| format!("Failed to turn display on: {:?}", e))?;
         Ok(())
     }
 
@@ -59,7 +65,7 @@ impl PoeDisplay {
         offset: Point,
     ) -> Result<(), Box<dyn std::error::Error>> {
         self.render(ip_address, cpu_usage, temp, ram_usage, disk_usage, offset)
-            .map_err(draw_err)?;
+            .map_err(|e| format!("Failed to update display: {:?}", e))?;
         Ok(())
     }
 
@@ -124,10 +130,6 @@ fn map_brightness_value(value: u8) -> Brightness {
             Brightness::DIMMEST
         }
     }
-}
-
-fn draw_err(e: DisplayError) -> Box<dyn std::error::Error> {
-    format!("Display draw error: {:?}", e).into()
 }
 
 fn initialize_display(
