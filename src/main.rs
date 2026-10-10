@@ -132,15 +132,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if app_state.is_display_periodically_on {
             let temp_str = format!("{:.1}", stats.cpu_temp);
-            poe_disp
-                .update(
-                    &stats.ip_address,
-                    &stats.cpu_usage,
-                    &temp_str,
-                    &stats.ram_usage,
-                    &stats.disk_usage,
-                    app_state.shift_offset,
-                )?;
+            poe_disp.update(
+                &stats.ip_address,
+                &stats.cpu_usage,
+                &temp_str,
+                &stats.ram_usage,
+                &stats.disk_usage,
+                app_state.shift_offset,
+            )?;
         }
 
         thread::sleep(refresh_interval);

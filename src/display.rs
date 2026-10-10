@@ -29,7 +29,10 @@ impl PoeDisplay {
         Ok(PoeDisplay { display })
     }
 
-    pub fn set_brightness(&mut self, brightness: Brightness) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn set_brightness(
+        &mut self,
+        brightness: Brightness,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         self.display.set_brightness(brightness).map_err(draw_err)?;
         Ok(())
     }
@@ -71,7 +74,9 @@ impl PoeDisplay {
         let next = Text::new(cpu_usage, cpu_pos, PCSENIOR8_STYLE)
             .draw(disp)
             .map_err(draw_err)?;
-        let next = Text::new("%", next, FONT_6X12).draw(disp).map_err(draw_err)?;
+        let next = Text::new("%", next, FONT_6X12)
+            .draw(disp)
+            .map_err(draw_err)?;
         Text::new("CPU", next + X_MARGIN, FONT_5X8)
             .draw(disp)
             .map_err(draw_err)?;
@@ -81,7 +86,9 @@ impl PoeDisplay {
         let next = Text::new(ram_usage, ram_pos, PCSENIOR8_STYLE)
             .draw(disp)
             .map_err(draw_err)?;
-        let next = Text::new("%", next, FONT_6X12).draw(disp).map_err(draw_err)?;
+        let next = Text::new("%", next, FONT_6X12)
+            .draw(disp)
+            .map_err(draw_err)?;
         Text::new("RAM", next + X_MARGIN, FONT_5X8)
             .draw(disp)
             .map_err(draw_err)?;
@@ -103,7 +110,9 @@ impl PoeDisplay {
         let next = Text::new(disk_usage, disk_pos, PCSENIOR8_STYLE)
             .draw(disp)
             .map_err(draw_err)?;
-        let next = Text::new("%", next, FONT_6X12).draw(disp).map_err(draw_err)?;
+        let next = Text::new("%", next, FONT_6X12)
+            .draw(disp)
+            .map_err(draw_err)?;
         Text::new("DISK", next + X_MARGIN, FONT_5X8)
             .draw(disp)
             .map_err(draw_err)?;
