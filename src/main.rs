@@ -7,7 +7,6 @@ use std::fs;
 use std::net::UdpSocket;
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 mod fan_controller;
 use fan_controller::FanController;
@@ -27,6 +26,36 @@ struct AppState {
     last_periodic_toggle_time: Instant,
     is_display_periodically_on: bool,
     screen_dimmed: bool,
+}
+
+#[derive(Default)]
+struct CpuSampler {
+    idle: u64,
+    total: u64,
+}
+
+impl CpuSampler {
+    fn usage(&mut self) -> f64 {
+        let stat = fs::read_to_string("/proc/stat").unwrap_or_default();
+        let fields = stat.lines().next().unwrap_or_default().split_whitespace();
+        let (mut idle, mut total) = (0, 0);
+        // user nice system idle iowait irq softirq steal
+        for (i, value) in fields.skip(1).take(8).enumerate() {
+            let value: u64 = value.parse().unwrap_or(0);
+            total += value;
+            if i == 3 || i == 4 {
+                idle += value;
+            }
+        }
+        let idle_delta = idle.saturating_sub(self.idle);
+        let total_delta = total.saturating_sub(self.total);
+        self.idle = idle;
+        self.total = total;
+        if total_delta == 0 {
+            return 0.0;
+        }
+        (1.0 - idle_delta as f64 / total_delta as f64) * 100.0
+    }
 }
 
 struct SystemStats {
@@ -61,26 +90,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         fan_controller.temp_on, fan_controller.temp_off
     );
 
-    let mut sys: System = System::new_with_specifics(
-        RefreshKind::nothing()
-            .with_cpu(CpuRefreshKind::nothing().with_cpu_usage())
-            .with_memory(MemoryRefreshKind::nothing().with_ram()),
-    );
-
-    debug!("System initialized. System info:");
-    debug!("================================");
-    debug!(
-        "System name:             {}",
-        System::name().unwrap_or_default()
-    );
-    debug!(
-        "System kernel version:   {}",
-        System::kernel_version().unwrap_or_default()
-    );
-    debug!(
-        "System OS version:       {}",
-        System::os_version().unwrap_or_default()
-    );
+    let mut cpu = CpuSampler::default();
 
     info!("Starting main loop");
 
@@ -126,7 +136,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         update_pixel_shift(now, shift_interval, &shift_pattern, &mut app_state);
 
-        let stats = gather_stats(&mut sys);
+        let stats = gather_stats(&mut cpu);
 
         handle_fan_control(&mut fan_controller, stats.cpu_temp)?;
 
@@ -205,22 +215,13 @@ fn update_pixel_shift(
     }
 }
 
-fn gather_stats(sys: &mut System) -> SystemStats {
-    sys.refresh_cpu_usage();
-    sys.refresh_memory();
-
-    let ip_address = get_ip_address();
-    let disk_usage = format!("{:.1}", get_disk_usage());
-    let cpu_temp = get_cpu_temperature();
-    let cpu_usage = format!("{:.1}", sys.global_cpu_usage());
-    let ram_usage = format!("{:.1}", get_ram_usage(sys));
-
+fn gather_stats(cpu: &mut CpuSampler) -> SystemStats {
     SystemStats {
-        ip_address,
-        cpu_usage,
-        cpu_temp,
-        ram_usage,
-        disk_usage,
+        ip_address: get_ip_address(),
+        cpu_usage: format!("{:.1}", cpu.usage()),
+        cpu_temp: get_cpu_temperature(),
+        ram_usage: format!("{:.1}", get_ram_usage()),
+        disk_usage: format!("{:.1}", get_disk_usage()),
     }
 }
 
@@ -262,10 +263,21 @@ fn get_cpu_temperature() -> f32 {
     }
 }
 
-fn get_ram_usage(sys: &System) -> f64 {
-    let total_memory = sys.total_memory();
-    let used_memory = sys.used_memory();
-    (used_memory as f64 / total_memory as f64) * 100.0
+fn get_ram_usage() -> f64 {
+    let meminfo = fs::read_to_string("/proc/meminfo").unwrap_or_default();
+    let field = |name: &str| -> f64 {
+        meminfo
+            .lines()
+            .find_map(|line| line.strip_prefix(name))
+            .and_then(|rest| rest.split_whitespace().next())
+            .and_then(|value| value.parse().ok())
+            .unwrap_or(0.0)
+    };
+    let total = field("MemTotal:");
+    if total == 0.0 {
+        return 0.0;
+    }
+    (1.0 - field("MemAvailable:") / total) * 100.0
 }
 
 fn get_disk_usage() -> f64 {
