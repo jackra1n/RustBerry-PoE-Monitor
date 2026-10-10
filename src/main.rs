@@ -58,11 +58,13 @@ impl CpuSampler {
     }
 }
 
+#[derive(Default)]
 struct SystemStats {
     ip_address: String,
     cpu_usage: String,
     ram_usage: String,
     disk_usage: String,
+    slow_refreshed_at: Option<Instant>,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -90,6 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let mut cpu = CpuSampler::default();
+    let mut stats = SystemStats::default();
 
     info!("Starting main loop");
 
@@ -101,6 +104,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let shift_interval = Duration::from_secs(60);
     let shift_pattern = [Point::new(0, 0), Point::new(1, 0)];
     let refresh_interval = config.refresh_interval();
+    let slow_stats_interval = Duration::from_secs(30);
 
     let mut app_state = AppState {
         last_shift_time: Instant::now(),
@@ -139,7 +143,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         handle_fan_control(&mut fan_controller, cpu_temp)?;
 
         if app_state.is_display_periodically_on {
-            let stats = gather_stats(&mut cpu);
+            update_stats(now, slow_stats_interval, &mut cpu, &mut stats);
             let temp_str = format!("{:.1}", cpu_temp);
             poe_disp.update(
                 &stats.ip_address,
@@ -214,12 +218,22 @@ fn update_pixel_shift(
     }
 }
 
-fn gather_stats(cpu: &mut CpuSampler) -> SystemStats {
-    SystemStats {
-        ip_address: get_ip_address(),
-        cpu_usage: format!("{:.1}", cpu.usage()),
-        ram_usage: format!("{:.1}", get_ram_usage()),
-        disk_usage: format!("{:.1}", get_disk_usage()),
+fn update_stats(
+    now: Instant,
+    slow_interval: Duration,
+    cpu: &mut CpuSampler,
+    stats: &mut SystemStats,
+) {
+    stats.cpu_usage = format!("{:.1}", cpu.usage());
+    stats.ram_usage = format!("{:.1}", get_ram_usage());
+
+    if stats
+        .slow_refreshed_at
+        .is_none_or(|refreshed_at| now.duration_since(refreshed_at) >= slow_interval)
+    {
+        stats.ip_address = get_ip_address();
+        stats.disk_usage = format!("{:.1}", get_disk_usage());
+        stats.slow_refreshed_at = Some(now);
     }
 }
 
