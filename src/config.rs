@@ -115,6 +115,12 @@ impl Config {
             )
             .into());
         }
+        if self.fan.temp_off <= 0.0 || self.fan.temp_on <= 0.0 {
+            return Err("Temperatures must be greater than 0".into());
+        }
+        if self.fan.temp_on <= self.fan.temp_off {
+            return Err("temp_on must be greater than temp_off".into());
+        }
         Ok(())
     }
 }
