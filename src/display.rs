@@ -20,13 +20,17 @@ const VALUE_CHAR_WIDTH: i32 = PCSENIOR8.character_size.width as i32;
 
 pub struct PoeDisplay {
     display: Display,
+    last_frame: String,
 }
 
 impl PoeDisplay {
     pub fn new(display_config: &AppDisplayConfig) -> Result<Self, Box<dyn std::error::Error>> {
         let i2c = I2cdev::new("/dev/i2c-1")?;
         let display = initialize_display(i2c, display_config)?;
-        Ok(PoeDisplay { display })
+        Ok(PoeDisplay {
+            display,
+            last_frame: String::new(),
+        })
     }
 
     pub fn set_brightness(
@@ -64,8 +68,13 @@ impl PoeDisplay {
         disk_usage: &str,
         offset: Point,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let frame = format!("{ip_address} {cpu_usage} {temp} {ram_usage} {disk_usage} {offset:?}");
+        if frame == self.last_frame {
+            return Ok(());
+        }
         self.render(ip_address, cpu_usage, temp, ram_usage, disk_usage, offset)
             .map_err(|e| format!("Failed to update display: {:?}", e))?;
+        self.last_frame = frame;
         Ok(())
     }
 
