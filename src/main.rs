@@ -4,7 +4,7 @@ use log::{debug, info, trace};
 use ssd1306::prelude::Brightness;
 use std::error::Error;
 use std::fs;
-use std::process::Command;
+use std::net::UdpSocket;
 use std::thread;
 use std::time::{Duration, Instant};
 use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, RefreshKind, System};
@@ -245,22 +245,11 @@ fn handle_fan_control(
 }
 
 fn get_ip_address() -> String {
-    Command::new("hostname")
-        .arg("-I")
-        .output()
-        .ok()
-        .and_then(|output| {
-            if output.status.success() {
-                String::from_utf8(output.stdout)
-                    .ok()
-                    .and_then(|s| s.split_whitespace().next().map(str::to_string))
-            } else {
-                None
-            }
-        })
-        .unwrap_or_else(|| "0.0.0.0".to_string())
-        .trim()
-        .to_string()
+    // connecting a UDP socket sends no packets, it only picks the outgoing interface
+    UdpSocket::bind("0.0.0.0:0")
+        .and_then(|socket| socket.connect("1.1.1.1:80").and(socket.local_addr()))
+        .map(|addr| addr.ip().to_string())
+        .unwrap_or_else(|_| "0.0.0.0".to_string())
 }
 
 fn get_cpu_temperature() -> f32 {
