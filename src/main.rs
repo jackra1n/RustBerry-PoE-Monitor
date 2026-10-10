@@ -17,8 +17,6 @@ use config::Config;
 mod display;
 use display::PoeDisplay;
 
-mod display_types;
-
 struct AppState {
     last_shift_time: Instant,
     shift_index: usize,

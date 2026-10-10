@@ -1,22 +1,15 @@
 use crate::config::DisplayConfig as AppDisplayConfig;
-use crate::display_types::{Display, FONT_5X8, FONT_6X12, PCSENIOR8, PCSENIOR8_STYLE, PROFONT12};
-use display_interface::DisplayError;
-use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, text::Text};
+use embedded_graphics::prelude::Point;
 use linux_embedded_hal::I2cdev;
 use log::{debug, info, warn};
+use rustberry_poe_monitor::render;
 
 use ssd1306::mode::DisplayConfig;
 use ssd1306::prelude::Brightness;
-use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
+use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
 
-const DISPLAY_WIDTH: i32 = 128;
-const IP_ROW_Y: i32 = 7;
-const STATS_ROW1_Y: i32 = 19;
-const STATS_ROW2_Y: i32 = 30;
-const LEFT_COL_RIGHT: i32 = 34;
-const RIGHT_COL_RIGHT: i32 = 99;
-const X_MARGIN: Point = Point::new(2, 0);
-const VALUE_CHAR_WIDTH: i32 = PCSENIOR8.character_size.width as i32;
+type Display =
+    Ssd1306<I2CInterface<I2cdev>, DisplaySize128x32, BufferedGraphicsMode<DisplaySize128x32>>;
 
 pub struct PoeDisplay {
     display: Display,
@@ -72,55 +65,19 @@ impl PoeDisplay {
         if frame == self.last_frame {
             return Ok(());
         }
-        self.render(ip_address, cpu_usage, temp, ram_usage, disk_usage, offset)
-            .map_err(|e| format!("Failed to update display: {:?}", e))?;
+        render::draw(
+            &mut self.display,
+            ip_address,
+            cpu_usage,
+            temp,
+            ram_usage,
+            disk_usage,
+            offset,
+        )
+        .and_then(|()| self.display.flush())
+        .map_err(|e| format!("Failed to update display: {:?}", e))?;
         self.last_frame = frame;
         Ok(())
-    }
-
-    fn render(
-        &mut self,
-        ip_address: &str,
-        cpu_usage: &str,
-        temp: &str,
-        ram_usage: &str,
-        disk_usage: &str,
-        offset: Point,
-    ) -> Result<(), DisplayError> {
-        let disp = &mut self.display;
-
-        disp.clear(BinaryColor::Off)?;
-
-        let ip_width = ip_address.len() as i32 * VALUE_CHAR_WIDTH;
-        let ip_x_position = (DISPLAY_WIDTH - ip_width) / 2;
-        let ip_pos = Point::new(ip_x_position, IP_ROW_Y) + offset;
-        Text::new(ip_address, ip_pos, PCSENIOR8_STYLE).draw(disp)?;
-
-        let cpu_width = cpu_usage.len() as i32 * VALUE_CHAR_WIDTH;
-        let cpu_pos = Point::new(LEFT_COL_RIGHT - cpu_width, STATS_ROW1_Y) + offset;
-        let next = Text::new(cpu_usage, cpu_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
-        Text::new("CPU", next + X_MARGIN, FONT_5X8).draw(disp)?;
-
-        let ram_width = ram_usage.len() as i32 * VALUE_CHAR_WIDTH;
-        let ram_pos = Point::new(LEFT_COL_RIGHT - ram_width, STATS_ROW2_Y) + offset;
-        let next = Text::new(ram_usage, ram_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
-        Text::new("RAM", next + X_MARGIN, FONT_5X8).draw(disp)?;
-
-        let temp_width = temp.len() as i32 * VALUE_CHAR_WIDTH;
-        let temp_pos = Point::new(RIGHT_COL_RIGHT - temp_width, STATS_ROW1_Y) + offset;
-        let next = Text::new(temp, temp_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("°", next + Point::new(0, 3), PROFONT12).draw(disp)?;
-        Text::new("C", next - Point::new(0, 2), PCSENIOR8_STYLE).draw(disp)?;
-
-        let disk_width = disk_usage.len() as i32 * VALUE_CHAR_WIDTH;
-        let disk_pos = Point::new(RIGHT_COL_RIGHT - disk_width, STATS_ROW2_Y) + offset;
-        let next = Text::new(disk_usage, disk_pos, PCSENIOR8_STYLE).draw(disp)?;
-        let next = Text::new("%", next, FONT_6X12).draw(disp)?;
-        Text::new("DISK", next + X_MARGIN, FONT_5X8).draw(disp)?;
-
-        disp.flush()
     }
 }
 
