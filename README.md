@@ -120,7 +120,7 @@ For building for Rasberry Pi I'm using [cross](https://github.com/cross-rs/cross
 
 ### Display Simulator
 To work on the display layout without a Raspberry Pi, you can render it on your computer.
-The window needs SDL2 installed (e.g. `SDL2-devel` on Fedora, `libsdl2-dev` on Debian/Ubuntu).
+The window needs SDL2 installed (e.g. `sdl2-compat-devel` on Fedora, `libsdl2-dev` on Debian/Ubuntu).
 ```bash
 cargo run -p simulator
 ```
