@@ -9,7 +9,7 @@ use ssd1306::mode::DisplayConfig;
 use ssd1306::prelude::Brightness;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 
-const DISPLAY_WIDTH: u32 = 128;
+const DISPLAY_WIDTH: i32 = 128;
 const IP_ROW_Y: i32 = 7;
 const STATS_ROW1_Y: i32 = 19;
 const STATS_ROW2_Y: i32 = 30;
@@ -83,7 +83,7 @@ impl PoeDisplay {
         disp.clear(BinaryColor::Off)?;
 
         let ip_width = ip_address.len() as i32 * VALUE_CHAR_WIDTH;
-        let ip_x_position = (DISPLAY_WIDTH as i32 - ip_width) / 2;
+        let ip_x_position = (DISPLAY_WIDTH - ip_width) / 2;
         let ip_pos = Point::new(ip_x_position, IP_ROW_Y) + offset;
         Text::new(ip_address, ip_pos, PCSENIOR8_STYLE).draw(disp)?;
 
