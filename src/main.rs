@@ -7,7 +7,7 @@ use std::fs;
 use std::net::UdpSocket;
 use std::thread;
 use std::time::{Duration, Instant};
-use sysinfo::{CpuRefreshKind, Disks, MemoryRefreshKind, RefreshKind, System};
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 mod fan_controller;
 use fan_controller::FanController;
@@ -269,17 +269,9 @@ fn get_ram_usage(sys: &System) -> f64 {
 }
 
 fn get_disk_usage() -> f64 {
-    let mut disks = Disks::new_with_refreshed_list();
-    if let Some(disk) = disks.first_mut() {
-        disk.refresh();
-        let total_space = disk.total_space();
-        let available_space = disk.available_space();
-        if total_space > 0 {
-            (1.0 - (available_space as f64 / total_space as f64)) * 100.0
-        } else {
-            0.0
-        }
-    } else {
-        0.0
+    let mut stat: libc::statvfs = unsafe { std::mem::zeroed() };
+    if unsafe { libc::statvfs(c"/".as_ptr(), &mut stat) } != 0 || stat.f_blocks == 0 {
+        return 0.0;
     }
+    (1.0 - stat.f_bavail as f64 / stat.f_blocks as f64) * 100.0
 }
